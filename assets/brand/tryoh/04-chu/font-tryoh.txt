@@ -1,0 +1,11 @@
+Chữ TryOh! · bản 1.0 · 12/11/2026
+Cả ba font đều miễn phí (SIL Open Font License), có đủ dấu tiếng Việt.
+
+Tiêu đề:   Space Grotesk Bold (700), khoảng chữ -2%
+           https://fonts.google.com/specimen/Space+Grotesk
+Nội dung:  Be Vietnam Pro Regular / Medium / SemiBold (400-600)
+           https://fonts.google.com/specimen/Be+Vietnam+Pro
+Nhãn nhỏ, số liệu kỹ thuật: JetBrains Mono (400)
+           https://fonts.google.com/specimen/JetBrains+Mono
+
+Logo đã chuyển thành nét: không cần cài font để dùng logo.

@@ -1,0 +1,12 @@
+Bảng màu TryOh! · bản 1.0 · 12/11/2026
+
+Đỏ TryOh!              #f43a1c   RGB 244,58,28   Logo, dấu chấm cuối tiêu đề, khối liên hệ, mảng lớn
+Đỏ đậm                 #b3260f   RGB 179,38,15   Chữ nhỏ / liên kết màu đỏ trên nền sáng
+Mực                    #1a1a1a   RGB 26,26,26   Chữ, nút chính "Nhận tư vấn"
+Kem                    #f6f2ec   RGB 246,242,236   Nền trang
+Hồng nhạt · Wow        #fbd9cb   RGB 251,217,203   Lớp Wow (tại sự kiện)
+Xanh trời · Consent    #cde4ff   RGB 205,228,255   Lớp Consent (dữ liệu, đồng ý)
+Vàng trứng · Engage    #fee4a9   RGB 254,228,169   Lớp Engage (gặp lại sau)
+Cát                    #efe6da   RGB 239,230,218   Nền phụ, thẻ, chân trang
+
+Chưa có mã CMYK / Pantone chuẩn: khi in, nhờ xưởng in đo và chốt mã theo giấy.

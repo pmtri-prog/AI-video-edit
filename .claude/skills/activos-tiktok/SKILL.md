@@ -76,15 +76,26 @@ A feature still in test gets a yellow pill `#fff100`, black JetBrains Mono text 
 Black full frame. `assets/brand/activos-ngang-nen-toi.svg` centered, width 640px. Below it "Make offline count." in Archivo 800 at 62%, 96px, white, then `activos.vn` in JetBrains Mono 36px, `#979797`. Fade in 0.4s. Insert the logo as `<img>` from the file - never redraw it.
 
 ### 3.8 Forbidden visuals
-Gradients, glow, drop-shadow on text, glassmorphism or backdrop blur, grain, emoji, all-caps text (no `text-transform: uppercase`), white text on any pastel or yellow, red or green for right/wrong, stock or AI images, any logo of a client brand unless the brief says it is approved.
+Gradients, glow, drop-shadow on text, glassmorphism or backdrop blur, grain, emoji, all-caps text (no `text-transform: uppercase`), white text on any pastel or yellow, red or green for right/wrong, stock or AI images, any logo of a client brand unless the brief says it is approved (the TikTok co-branded file in section 4.1 is pre-approved).
 
 ## 4. Footage rules
-- Source: Trí's Google Shared Drive (`drive.google.com/drive/folders/0AAVIirV656S_Uk9PVA`). The CLI cannot open it (needs his Google login), so he downloads clips to `~/Downloads` (sometimes as a Drive zip) and says so.
-- **Never import the same clip twice.** He re-downloads for every edit, and Drive adds ` (1)` suffixes, so compare by `shasum -a 256`, not by filename, against everything already in `imports/` and `video-projects/*/assets/`. Copy only new hashes; list skipped duplicates in the report.
+- Source: the **TryOh library** - a catalog of Trí's Google Shared Drive "TryOh!E vent Media" (one subfolder per event; the folder name is the `event` tag). The backend cannot read Drive; clips are downloaded on demand through Trí's Chrome and registered with `node scripts/media-library-register.mjs <driveId> <file>`, which moves the file out of `~/Downloads` and records its sha256.
+- When the brief has **"Kho TryOh" ON** (`brief.brollLibrary`): find clips with `GET /api/media-library?q=…` / `?event=…&downloaded=1`, then `POST /api/media-library/<id>/stage {"projectId":"<id>"}` and reference the returned `relPath`. Stage skips duplicates by hash - never copy footage by hand. A clip you need that is not downloaded yet: keep the talking head there and list `id`, `title` and the line it should cover in the report.
+- When it is **OFF**: use only what is already in the project's `assets/`; stage returns 409 BROLL_DISABLED.
+- After you look at a staged clip, write what you saw back so the library gets smarter: `PATCH /api/media-library/<id> {"tags":{"shot":"wide|crowd|hand|product|machine|screen|other","faces":"none|far|recognizable","description":"…","brands":["…"]}}`. Do not set `approved` - that is Trí's call.
 - Only real footage from `assets/`. `autoIllustrations` must be off - if the brief has it on, stop and ask.
 - Consumer faces must not be recognizable: prefer wide, from-behind or hand close-ups. If a usable clip shows a face, blur it (`filter: blur(18px)` on a tracked region, or crop) and say so in the report.
 - Blur every visible name or phone number on machine screens.
 - Zoom technique from `noti-tiktok-vn` applies, but slow and rare: 1 punch-in every 6-10s, scale 1 → 1.08 max (guideline section 5), no snap or shake.
+
+### 4.1 Partner proof - TikTok sampling partner (mandatory)
+Trí wants credibility on screen every time he claims the TikTok partnership. Whenever the transcript mentions it - "đối tác sampling", "sampling partner", "đối tác của TikTok", "TikTok Beauty Fest", "TikTok Food Fest", "BeautyFest", "FoodFest" (match accent-insensitive, any casing) - put proof on screen from that word for 2-4s. Pick the first that exists, in this order:
+
+1. **Co-branded logo** "TikTok BeautyFest × TryOh!" - the file from the TryOh brand pack, folder `06-doi-tac/`, kept locally at `assets/brand/tryoh/06-doi-tac/tiktok-beautyfest-x-tryoh.png` (black text on transparent - light background only). Copy it into the project's `assets/` first (Remotion only stages files inside the project). Show it on a cream `#f6f2ec` card, centered, width 640-760px, fade in 0.3s, no other logo in the same frame. Beauty Fest only: **Food Fest has no co-branded logo** - for Food Fest write the line as text instead (step 3) or use photos (step 2).
+2. **Real event photos/footage** from the TryOh library, matching the event that is named: `GET /api/media-library?q=TBF` (events "TBF …", "Beauty Summit") or `?q=Foodfest`, then stage as in section 4. Only when `brief.brollLibrary` is ON. Not downloaded yet → list `id` + `title` in the report so Trí can download it, and fall through to step 3.
+3. **Text line** on a layer card, verbatim: `Đối tác sampling của TikTok Beauty Fest và TikTok Food Fest 2026` (or only the event that was named), mono label with the year.
+
+Never: draw, redraw, recolor or retype the TikTok logo; build a new "TikTok × TryOh!" lockup yourself; fetch the TikTok logo from `/api/brand-logos` for this claim (a bare TikTok logo reads as an endorsement that was not given - only the approved co-branded file may carry it); say "partner of TikTok" without naming the event. A co-logo is a logo, not b-roll, so step 1 is allowed even when "Kho TryOh" is OFF. Report every proof moment as `mm:ss | what was shown | source file`.
 
 ## 5. Content QC (mandatory, after the draft, before final)
 Run on `assets/transcript.final.json` and every `compositions/*.html`:
@@ -120,5 +131,6 @@ Trí's brief notes may contain lines like:
 - [ ] Guideline md was read this session (say so in the report)
 - [ ] Fonts loaded from `assets/fonts/` (Archivo condensed visible on a snapshot)
 - [ ] No corner logo; end card uses the logo file
+- [ ] Every TikTok partner mention has proof on screen (section 4.1), listed with timestamp and source
 - [ ] Content QC table included
 - [ ] Any face/name/number blurred is listed with its timestamp

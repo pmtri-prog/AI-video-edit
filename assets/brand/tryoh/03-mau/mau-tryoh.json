@@ -1,0 +1,82 @@
+{
+ "do": {
+  "name": "Đỏ TryOh!",
+  "hex": "#f43a1c",
+  "rgb": [
+   244,
+   58,
+   28
+  ],
+  "use": "Logo, dấu chấm cuối tiêu đề, khối liên hệ, mảng lớn"
+ },
+ "do-dam": {
+  "name": "Đỏ đậm",
+  "hex": "#b3260f",
+  "rgb": [
+   179,
+   38,
+   15
+  ],
+  "use": "Chữ nhỏ / liên kết màu đỏ trên nền sáng"
+ },
+ "muc": {
+  "name": "Mực",
+  "hex": "#1a1a1a",
+  "rgb": [
+   26,
+   26,
+   26
+  ],
+  "use": "Chữ, nút chính \"Nhận tư vấn\""
+ },
+ "kem": {
+  "name": "Kem",
+  "hex": "#f6f2ec",
+  "rgb": [
+   246,
+   242,
+   236
+  ],
+  "use": "Nền trang"
+ },
+ "hong": {
+  "name": "Hồng nhạt · Wow",
+  "hex": "#fbd9cb",
+  "rgb": [
+   251,
+   217,
+   203
+  ],
+  "use": "Lớp Wow (tại sự kiện)"
+ },
+ "troi": {
+  "name": "Xanh trời · Consent",
+  "hex": "#cde4ff",
+  "rgb": [
+   205,
+   228,
+   255
+  ],
+  "use": "Lớp Consent (dữ liệu, đồng ý)"
+ },
+ "trung": {
+  "name": "Vàng trứng · Engage",
+  "hex": "#fee4a9",
+  "rgb": [
+   254,
+   228,
+   169
+  ],
+  "use": "Lớp Engage (gặp lại sau)"
+ },
+ "cat": {
+  "name": "Cát",
+  "hex": "#efe6da",
+  "rgb": [
+   239,
+   230,
+   218
+  ],
+  "use": "Nền phụ, thẻ, chân trang"
+ }
+}
