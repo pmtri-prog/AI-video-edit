@@ -66,6 +66,7 @@ export const DEFAULT_BRIEF: Brief = {
   notes: "",
   autoIllustrations: false,
   brollLibrary: false,
+  fillerScenes: false,
   illustrationModel: null,
   illustrationText: false,
   illustrationPosition: "auto",
@@ -402,6 +403,13 @@ export function BriefFields({
           onChange={(v) => set("brollLibrary", v)}
           label={t("brief.broll-label")}
           hint={t("brief.broll-hint")}
+        />
+        <SwitchField
+          id="brief-filler"
+          checked={value.fillerScenes}
+          onChange={(v) => set("fillerScenes", v)}
+          label={t("brief.filler-label")}
+          hint={t("brief.filler-hint")}
         />
         <SwitchField
           id="brief-illustrations"

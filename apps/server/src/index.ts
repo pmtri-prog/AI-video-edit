@@ -40,6 +40,7 @@ import connectionsRouter from "./routes/connections.js";
 import renderSettingsRouter from "./routes/renderSettingsRoute.js";
 import illustrationsRouter from "./routes/illustrations.js";
 import thumbnailsRouter from "./routes/thumbnails.js";
+import screenCaptureRouter from "./routes/screenCapture.js";
 import publishRouter from "./routes/publish.js";
 import qcRouter from "./routes/qc.js";
 import clipsRouter from "./routes/clips.js";
@@ -202,6 +203,7 @@ app.use("/api/doctor", doctorRouter);
 app.use("/api/projects", projectsRouter);
 // POST /api/projects/:id/thumbnail - projectsRouter không match nên rơi xuống đây
 app.use("/api/projects", thumbnailsRouter);
+app.use("/api/projects", screenCaptureRouter);
 // Các router phụ của project (đường dẫn con riêng, không đụng projectsRouter)
 app.use("/api/projects", publishRouter); // phụ đề .srt/.vtt + gói metadata đăng bài
 app.use("/api/projects", qcRouter); // QC tự động trên bản draft

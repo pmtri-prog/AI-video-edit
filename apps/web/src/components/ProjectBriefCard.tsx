@@ -155,6 +155,7 @@ export function ProjectBriefCard({
           <YesNoBadge label={t("brief.key-layout")} value={form.keyLayoutEnabled} />
           <YesNoBadge label={t("brief.badge-illustrations")} value={form.autoIllustrations} />
           <YesNoBadge label={t("brief.badge-broll")} value={form.brollLibrary} />
+          <YesNoBadge label={t("brief.badge-filler")} value={form.fillerScenes} />
           {/* Phong cách dựng giờ là công tắc như mấy cái trên - vào đúng hàng
               badge này, đừng để nó là thứ duy nhất phải mở form ra mới biết */}
           <YesNoBadge label={t("vstyle.label")} value={form.videoStyleEnabled} />

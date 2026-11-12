@@ -171,7 +171,12 @@ export type JobType =
   /** Text to video: projectId là id phiên, không dùng sceneId */
   | "text-to-video"
   /** Dịch video: projectId là id phiên dịch, sceneId mang step (transcribe | render) */
-  | "translate-video";
+  | "translate-video"
+  /**
+   * Quay màn hình một trang web (Playwright) thành clip 9:16 làm cảnh trám của
+   * một video project. Chỉ tạo qua POST /api/projects/:id/screen-capture.
+   */
+  | "screen-capture";
 export type JobStatus = "queued" | "running" | "done" | "failed" | "canceled";
 
 /**

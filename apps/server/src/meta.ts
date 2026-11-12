@@ -108,6 +108,12 @@ export interface Brief {
    * trả 409 BROLL_DISABLED.
    */
   brollLibrary: boolean;
+  /**
+   * BẬT = AI được chèn CẢNH TRÁM minh họa vào những câu khó hình dung: quay màn
+   * hình web thật (Playwright) hoặc motion graphic tự dựng. TẮT = cấm:
+   * POST /api/projects/:id/screen-capture trả 409 FILLER_DISABLED.
+   */
+  fillerScenes: boolean;
   /** Model Gemini cho ảnh minh họa (null = mặc định Nano Banana 2) */
   illustrationModel: string | null;
   /** BẬT = cho phép Gemini vẽ chữ tiếng Việt vào ảnh minh họa (mặc định TẮT - chữ do Remotion/HyperFrames đặt) */
@@ -165,6 +171,7 @@ export function defaultBrief(): Brief {
     musicMode: "auto",
     autoIllustrations: false,
     brollLibrary: false,
+    fillerScenes: false,
     illustrationModel: null,
     illustrationText: false,
     illustrationPosition: "auto",
@@ -216,6 +223,7 @@ export function briefOf(meta: ProjectMeta): Brief {
   if (MUSIC_MODES.includes(b.musicMode as MusicMode)) base.musicMode = b.musicMode as MusicMode;
   if (typeof b.autoIllustrations === "boolean") base.autoIllustrations = b.autoIllustrations;
   if (typeof b.brollLibrary === "boolean") base.brollLibrary = b.brollLibrary;
+  if (typeof b.fillerScenes === "boolean") base.fillerScenes = b.fillerScenes;
   if (typeof b.illustrationModel === "string" && b.illustrationModel.trim()) {
     base.illustrationModel = b.illustrationModel.trim();
   }
@@ -310,6 +318,7 @@ export function applyBriefPatch(
   nullableStr("skill");
   bool("autoIllustrations");
   bool("brollLibrary");
+  bool("fillerScenes");
   nullableStr("illustrationModel");
   bool("illustrationText");
   str("notes");

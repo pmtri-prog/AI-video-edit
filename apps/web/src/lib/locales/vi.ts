@@ -472,6 +472,10 @@ export const vi: Record<string, string> = {
   "brief.broll-hint":
     "AI phủ footage và ảnh sự kiện thật từ Kho TryOh lên đoạn nói khi nhắc tới sự kiện, brand hay máy. Chỉ dùng clip đã tải về máy; clip còn thiếu được liệt kê trong báo cáo.",
   "brief.badge-broll": "Kho TryOh",
+  "brief.filler-label": "Cảnh trám minh họa",
+  "brief.filler-hint":
+    "AI chọn 2-4 câu khó hình dung và thay mặt người nói vài giây bằng cảnh minh họa: quay màn hình trang web thật (trang trong danh sách cho phép) hoặc motion graphic tự dựng. Giọng và phụ đề chạy liền.",
+  "brief.badge-filler": "Cảnh trám",
   "brief.badge-illustrations": "Minh họa AI",
   "brief.sfx.recommended": "Dùng bộ đề xuất",
   "brief.sfx.library": "AI tự tìm trong thư viện",

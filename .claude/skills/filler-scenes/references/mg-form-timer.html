@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=1080, height=1920">
+<title>Reference: form + 5s timer cutaway</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+@font-face{font-family:"Space Grotesk";src:url("assets/fonts/SpaceGrotesk-VF.ttf") format("truetype");font-weight:300 700;}
+@font-face{font-family:"Be Vietnam Pro";src:url("assets/fonts/BeVietnamPro-SemiBold.ttf") format("truetype");font-weight:600;}
+@font-face{font-family:"Be Vietnam Pro";src:url("assets/fonts/BeVietnamPro-Regular.ttf") format("truetype");font-weight:400;}
+@font-face{font-family:"JetBrains Mono";src:url("assets/fonts/JetBrainsMono-VF.ttf") format("truetype");font-weight:100 800;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#f6f2ec;font-family:"Be Vietnam Pro",sans-serif;color:#1a1a1a;}
+#root{position:relative;width:1080px;height:1920px;overflow:hidden;background:#f6f2ec;}
+#bar{position:absolute;left:64px;top:150px;display:flex;gap:8px;}
+#bar i{display:block;width:72px;height:10px;border-radius:5px;}
+#bar i:nth-child(1){background:#fbd9cb;opacity:.3;}#bar i:nth-child(2){background:#cde4ff;}#bar i:nth-child(3){background:#fee4a9;opacity:.3;}
+
+/* kiosk window */
+#kiosk{position:absolute;left:80px;top:300px;width:580px;height:900px;background:#efe6da;border-radius:36px;overflow:hidden;}
+#kiosk .top{height:70px;background:#1a1a1a;display:flex;align-items:center;gap:14px;padding:0 30px;}
+#kiosk .top i{width:20px;height:20px;border-radius:50%;display:block;}
+#kiosk h3{font-family:"Space Grotesk";font-weight:700;font-size:52px;letter-spacing:-.02em;padding:40px 44px 10px;}
+#kiosk h3 b{color:#f43a1c;}
+.row{display:flex;flex-direction:column;gap:12px;padding:20px 44px 0;opacity:.35;}
+.row label{font-weight:600;font-size:32px;display:flex;align-items:center;gap:12px;}
+.field{position:relative;height:66px;background:#f6f2ec;border-radius:18px;overflow:hidden;}
+.fill{position:absolute;left:0;top:0;bottom:0;width:0;background:#cde4ff;}
+.dots{position:absolute;left:24px;top:50%;transform:translateY(-50%);font-family:"JetBrains Mono";font-size:34px;letter-spacing:4px;opacity:0;}
+.ok{position:absolute;right:16px;top:50%;width:40px;height:40px;margin-top:-20px;border-radius:50%;background:#1a1a1a;display:grid;place-items:center;transform:scale(0);}
+.lock{width:30px;height:30px;opacity:0;}
+
+/* 5-second timer */
+#timer{position:absolute;left:700px;top:300px;width:230px;height:230px;}
+#timer svg{position:absolute;inset:0;transform:rotate(-90deg);}
+#num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+#num b{font-family:"Space Grotesk";font-weight:700;font-size:104px;line-height:1;letter-spacing:-.04em;}
+#num span{font-family:"JetBrains Mono";font-size:28px;margin-top:4px;}
+
+/* consent → profile */
+#arrow{position:absolute;left:600px;top:690px;width:200px;height:120px;overflow:visible;opacity:0;}
+#profile{position:absolute;left:690px;top:780px;width:240px;background:#fbd9cb;border-radius:32px;padding:34px 30px;opacity:0;}
+#profile .av{width:84px;height:84px;border-radius:50%;background:#f6f2ec;display:grid;place-items:center;}
+#profile .ln{height:16px;border-radius:8px;background:#1a1a1a;opacity:.85;margin-top:18px;}
+#profile .ln.s{width:60%;opacity:.4;}
+#pill{display:inline-block;margin-top:24px;background:#fee4a9;border-radius:40px;padding:10px 18px;font-weight:600;font-size:24px;white-space:nowrap;}
+#tag{position:absolute;left:80px;top:1240px;font-family:"JetBrains Mono";font-size:30px;opacity:0;}
+</style></head>
+<body>
+<!-- Reference cutaway for the filler-scenes skill. Standalone 7.4s; in a real video the
+     same markup goes inside a full-frame .filler container (data-layer="bg") and every tween
+     time is shifted by the beat start. Word-synced times are in the comments below. -->
+<div id="root" data-composition-id="main" data-start="0" data-duration="7.4" data-width="1080" data-height="1920">
+  <div id="bar"><i></i><i></i><i></i></div>
+
+  <div id="kiosk" data-layer="ui">
+    <div class="top"><i style="background:#f43a1c"></i><i style="background:#cde4ff"></i><i style="background:#fee4a9"></i></div>
+    <h3>Nhận quà<b>.</b></h3>
+    <div class="row" id="r0"><label>Tên</label><div class="field"><div class="fill"></div><div class="dots">••••••</div><div class="ok"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f6f2ec" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div></div></div>
+    <div class="row" id="r1"><label>Giới tính</label><div class="field"><div class="fill"></div><div class="dots">•••</div><div class="ok"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f6f2ec" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div></div></div>
+    <div class="row" id="r2"><label>Độ tuổi</label><div class="field"><div class="fill"></div><div class="dots">••</div><div class="ok"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f6f2ec" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div></div></div>
+    <div class="row" id="r3"><label>Số điện thoại <svg class="lock" id="l3" viewBox="0 0 24 24" fill="none" stroke="#b3260f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></label><div class="field"><div class="fill"></div><div class="dots">•••• ••• •••</div><div class="ok"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f6f2ec" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div></div></div>
+    <div class="row" id="r4"><label>Email <svg class="lock" id="l4" viewBox="0 0 24 24" fill="none" stroke="#b3260f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></label><div class="field"><div class="fill"></div><div class="dots">•••••@•••</div><div class="ok"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f6f2ec" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div></div></div>
+  </div>
+
+  <div id="timer" data-layer="ui">
+    <svg viewBox="0 0 260 260"><circle cx="130" cy="130" r="112" fill="#cde4ff"/><circle cx="130" cy="130" r="112" fill="none" stroke="#efe6da" stroke-width="18"/><circle id="arc" cx="130" cy="130" r="112" fill="none" stroke="#f43a1c" stroke-width="18" stroke-linecap="round" stroke-dasharray="703.7" stroke-dashoffset="0"/></svg>
+    <div id="num"><b id="n">5</b><span>giây</span></div>
+  </div>
+
+  <svg id="arrow" viewBox="0 0 200 120"><path id="ap" d="M10 10 C 90 10, 120 60, 150 100" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-dasharray="12 12" stroke-linecap="round"/><path id="ah" d="M134 96 L152 104 L156 84" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0"/></svg>
+
+  <div id="profile" data-layer="ui">
+    <div class="av"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></div>
+    <div class="ln"></div><div class="ln s"></div>
+    <div id="pill">✓ Đã đồng ý</div>
+  </div>
+
+  <div id="tag" data-layer="ui">5 giây · người chơi tự điền</div>
+</div>
+
+<script>
+window.__timelines = window.__timelines || {};
+const tl = gsap.timeline({paused:true});
+tl.from("#kiosk",{y:80,opacity:0,duration:0.5,ease:"power3.out"},0);
+tl.from("#timer",{scale:0.6,opacity:0,duration:0.45,ease:"back.out(1.6)"},0.25);
+tl.to("#tag",{opacity:1,duration:0.4},0.6);
+
+// countdown 5 → 0 over 1.6s → 6.6s, arc drains with it
+tl.to("#arc",{strokeDashoffset:703.7,duration:5,ease:"none"},1.6);
+[5,4,3,2,1,0].forEach((v,i)=>tl.set("#n",{textContent:String(v)},1.6+i));
+
+// one field per spoken word: tên 35.1, giới tính 35.6, độ tuổi 36.5, số điện thoại 39.4, mail 40.1 (minus 33.4)
+[[0,1.7],[1,2.2],[2,3.1],[3,6.0],[4,6.7]].forEach(([i,t])=>{
+  tl.to(`#r${i}`,{opacity:1,duration:0.2},t);
+  tl.to(`#r${i} .fill`,{width:"100%",duration:0.35,ease:"power2.out"},t);
+  tl.to(`#r${i} .dots`,{opacity:1,duration:0.2},t+0.1);
+  tl.to(`#r${i} .ok`,{scale:1,duration:0.3,ease:"back.out(2)"},t+0.3);
+});
+// "privacy" at 38.4 → locks on the personal fields
+tl.to(["#l3","#l4"],{opacity:1,duration:0.3},5.0);
+tl.to(["#r3","#r4"],{opacity:0.7,duration:0.3},5.0);
+
+// consent → profile card
+tl.to("#arrow",{opacity:1,duration:0.25},6.75);
+tl.fromTo("#ap",{strokeDashoffset:48},{strokeDashoffset:0,duration:0.5,ease:"none"},6.75);
+tl.to("#ah",{opacity:1,duration:0.15},7.05);
+tl.to("#profile",{opacity:1,x:0,duration:0.35,ease:"power2.out"},6.9);
+tl.set({}, {}, 7.4);
+window.__timelines["main"] = tl;
+</script></body></html>

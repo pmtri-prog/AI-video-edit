@@ -1,0 +1,6 @@
+{
+  "_note": "Trang AI được phép quay màn hình làm cảnh trám (POST /api/projects/:id/screen-capture). Chỉ https. Khớp đúng host hoặc tên miền con. Trang cần đăng nhập chưa hỗ trợ.",
+  "sites": [
+    { "host": "tryoh.vn", "label": "Website TryOh! (công khai)" }
+  ]
+}

@@ -472,6 +472,10 @@ export const en: Record<string, string> = {
   "brief.broll-hint":
     "AI overlays real event footage and photos from the TryOh library when the speech mentions an event, brand or machine. Only clips already downloaded are used; missing ones are listed in the report.",
   "brief.badge-broll": "TryOh library",
+  "brief.filler-label": "Explainer cutaways",
+  "brief.filler-hint":
+    "AI picks 2-4 hard-to-picture lines and covers the speaker for a few seconds with a cutaway: a screen recording of a real web page (allowed sites only) or a generated motion graphic. Voice and captions keep running.",
+  "brief.badge-filler": "Cutaways",
   "brief.badge-illustrations": "AI illustrations",
   "brief.sfx.recommended": "Use the recommended set",
   "brief.sfx.library": "AI searches the library",

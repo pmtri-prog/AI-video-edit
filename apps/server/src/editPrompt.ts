@@ -238,6 +238,24 @@ export function buildEditPrompt(input: {
         "đã có sẵn trong `assets/` của project.",
     );
   }
+  // Cảnh trám minh họa: in CẢ HAI chiều. Server chặn thêm một lớp: quay màn
+  // hình trả 409 FILLER_DISABLED khi tắt (motion graphic thì chỉ chặn bằng lời).
+  if (brief.fillerScenes) {
+    lines.push(
+      "- Cảnh trám minh họa: BẬT - đọc skill `filler-scenes` TRƯỚC khi chia nhịp. Chọn 2-4 câu khó " +
+        "hình dung (quy trình, khái niệm, số liệu, A→B→C) và thay mặt người nói 3-8 giây bằng cảnh " +
+        "minh họa, giọng và phụ đề chạy liền, tổng không quá 25% thời lượng. Thứ tự ưu tiên: footage " +
+        "thật trong assets → quay màn hình web thật (`POST /api/projects/" + id + "/screen-capture`, " +
+        "chỉ trang trong danh sách cho phép) → motion graphic tự dựng bằng HyperFrames. Trước MỖI lần " +
+        "render draft chạy `node scripts/layout-qc.mjs video-projects/" + id + "` và sửa hết lỗi nó báo.",
+    );
+  } else {
+    lines.push(
+      "- Cảnh trám minh họa: TẮT - KHÔNG chèn cảnh motion graphic minh họa thay mặt người nói và KHÔNG " +
+        "gọi `/api/projects/*/screen-capture` (server trả 409 FILLER_DISABLED). Thẻ chữ, phụ đề và " +
+        "hiệu ứng skill quy định vẫn làm bình thường.",
+    );
+  }
   if (brief.notes.trim()) lines.push(`- Ghi chú: ${brief.notes.trim()}`);
   if (extraNotes) lines.push(`- Ghi chú thêm cho lần edit này: ${extraNotes}`);
   lines.push("");

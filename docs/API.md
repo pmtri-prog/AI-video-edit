@@ -178,6 +178,9 @@ Brief = {
                                            //   "auto" = giữa khung, chừa band key trên + caption dưới (an toàn nhất cho video)
   illustrationsPerMinute: number|null,     // mật độ ảnh minh họa: số ảnh Gemini mỗi phút video (số nguyên 1-20);
                                            //   null = AI tự quyết theo nội dung. Đặt số để video dài đổi nền liên tục
+  fillerScenes: boolean,                   // BẬT = AI chèn cảnh trám minh họa (quay màn hình web thật /
+                                           //   motion graphic) vào câu khó hình dung - skill `filler-scenes`.
+                                           //   TẮT (mặc định) = cấm: POST /api/projects/:id/screen-capture trả 409 FILLER_DISABLED
   styleId: string|null,                    // Style Design áp cho project (null = style default)
   videoStyleEnabled: boolean,              // công tắc phong cách dựng. TẮT (mặc định) = dựng theo đúng cấu hình
                                            //   đã chọn (skill + Style Design), videoStyleId bị bỏ qua hoàn toàn.
@@ -320,7 +323,7 @@ Chi tiết kỹ thuật (đã verify 2026-07-29):
 ## Thumbnail video project (POST /api/projects/:id/thumbnail)
 
 ```
-POST /api/projects/:id/thumbnail  { title, frameAt?, sourceRel?, bgPrompt?, styleId? } → 201 { file: "thumbnail.png", relPath }
+POST /api/projects/:id/thumbnail  { title, frameAt?, sourceRel?, bgPrompt?, styleId?, tags?, tagColors? } → 201 { file: "thumbnail.png", relPath }
 ```
 Chạy ĐỒNG BỘ (~1 phút): ffmpeg cắt frame tại giây `frameAt` (mặc định 1) từ video (`sourceRel`,
 mặc định output final trong meta, fallback video asset đầu) → Gemini vẽ nền theo Style Design
@@ -328,6 +331,36 @@ mặc định output final trong meta, fallback video asset đầu) → Gemini v
 (nền + frame card + title + logo, 100% theo style) → `video-projects/<id>/thumbnail.png`.
 Style resolve: `body.styleId` → `brief.styleId` → default. `GET /api/projects/:id` trả thêm
 `thumbnail: "thumbnail.png"|null` (check file tồn tại).
+
+Style Design **phẳng** (`effects.gradient` và `effects.liquidGlass` đều false, vd TryOh!) dùng bố cục
+"Nhãn dán" (`ThumbnailStickers.tsx`): frame tràn khung, không gọi Gemini vẽ nền, tối đa 3 `tags`
+(string ≤ 24 ký tự) trên viên màu dán ngay trên thẻ title, `tagColors` (hex, theo thứ tự) - thiếu thì
+suy từ màu style. Viên neo theo thẻ title nên không bao giờ đè lên mặt ở giữa khung.
+
+## Quay màn hình làm cảnh trám (POST /api/projects/:id/screen-capture)
+
+```
+POST /api/projects/:id/screen-capture
+  { url, focusText?, endText?, seconds? (2-15, mặc định 4), name?, blurSelectors?: string[] }
+  → 202 Job (type "screen-capture") - xong thì Job.outputPath = video-projects/<id>/assets/screen/<name>.mp4
+  → 409 FILLER_DISABLED   brief.fillerScenes đang tắt
+  → 403 SITE_NOT_ALLOWED  host không có trong assets/screen-capture-sites.json
+  → 400 INVALID_URL       không phải https / url hỏng
+  → 400 INVALID_FIELD     seconds ngoài 2-15, chữ neo > 120 ký tự, blurSelectors chứa { } < >
+```
+
+Job chạy `scripts/screen-capture.mjs` (Playwright, Chrome đã cài trên máy) qua render queue:
+khung điện thoại 540x960 ở deviceScaleFactor 2, chụp từng khung rồi đẩy vào FFmpeg →
+1080x1920, 30fps, không tiếng. Cuộn từ chỗ ĐẦU TIÊN có `focusText` tới `endText`; chỉ
+`focusText` thì trôi nhẹ quanh nó; không có cả hai thì đi hết trang. 15% đầu đứng yên.
+`blurSelectors` làm mờ phần tử (tên, số điện thoại). Không bao giờ ghi đè clip cũ (thêm -2, -3).
+
+Danh sách trang được quay: `assets/screen-capture-sites.json` (`sites[].host`, khớp đúng host
+hoặc tên miền con, đọc lại mỗi request).
+
+Soát bố cục trước render (không qua API): `node scripts/layout-qc.mjs video-projects/<id>` - tua
+timeline GSAP mỗi 0,1s, báo phần tử `[data-layer="ui"]` lọt vùng an toàn TikTok (trên 150px,
+dưới 400px, phải 140px) hoặc đè nhau. Mã thoát 0 đạt / 2 có lỗi / 1 lỗi chạy; `--json` để đọc máy.
 
 ## Auto cut videos (tab riêng) - auto-cut/<id>/
 
@@ -1025,16 +1058,17 @@ hoặc env `QUEUE_CONCURRENCY`). Ràng buộc: **2 job của cùng một project
 
 ```
 Job = { id, projectId, type: "scene-draft"|"scene-final"|"assemble-draft"|"assemble-final"
-              |"image-gen"|"auto-cut"|"auto-trim"|"text-to-video",
+              |"image-gen"|"auto-cut"|"auto-trim"|"text-to-video"|"translate-video"|"screen-capture",
         sceneId: string|null, status: "queued"|"running"|"done"|"failed"|"canceled",
         progress: 0..100, step: string, outputPath: string|null,
         createdAt, startedAt: string|null, finishedAt: string|null }
 
-8 loại job. Tạo được qua POST /api/jobs: scene-draft, scene-final, assemble-draft, assemble-final,
+10 loại job. Tạo được qua POST /api/jobs: scene-draft, scene-final, assemble-draft, assemble-final,
 image-gen (projectId = image project, sceneId = step all|background|compose),
 auto-cut (projectId = id phiên cắt, sceneId = step plan|cut),
 auto-trim (projectId = video project, sceneId = mức natural|default|tight).
 "text-to-video" KHÔNG tạo tay được - chỉ sinh qua POST /api/text-to-video/:id/build.
+"screen-capture" cũng vậy - chỉ sinh qua POST /api/projects/:id/screen-capture (cần url đã qua kiểm tra).
 `auto-trim` tạo thẳng qua POST /api/jobs thì chạy với mức trong brief và KHÔNG có ứng viên mỡ thừa
 nào được duyệt - muốn truyền `cutCandidates` thì phải đi qua POST /api/projects/:id/auto-trim/apply.
 Cả hai đường đều trả 409 AUTO_CUT_DISABLED khi brief của project TẮT "Tự động cắt" (`brief.autoCut = false`).

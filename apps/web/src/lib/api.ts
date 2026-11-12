@@ -244,6 +244,8 @@ export interface Brief {
   autoIllustrations: boolean;
   /** BẬT = AI phủ b-roll/ảnh thật từ Kho TryOh (danh mục Shared Drive) theo lời nói. */
   brollLibrary: boolean;
+  /** BẬT = AI chèn cảnh trám minh họa (quay màn hình web thật / motion graphic) vào câu khó hình dung. */
+  fillerScenes: boolean;
   /** Model Gemini vẽ minh họa - null = mặc định của server (Nano Banana 2). */
   illustrationModel: string | null;
   /** BẬT = Gemini được vẽ chữ vào ảnh minh họa (mặc định TẮT - chữ do hệ thống đặt). */
