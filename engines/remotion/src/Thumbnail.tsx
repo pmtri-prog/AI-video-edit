@@ -6,6 +6,7 @@ import {
   ensureBrandFont,
 } from "./brandFonts";
 import type { ThumbnailProps } from "./thumbnailManifest";
+import { ThumbnailStickers } from "./ThumbnailStickers";
 
 /**
  * Still `Thumbnail` — ảnh bìa cho video đã render, 100% theo Style Design.
@@ -17,6 +18,9 @@ import type { ThumbnailProps } from "./thumbnailManifest";
  *  3) FRAME cắt từ video — card lớn bo góc + viền + bóng, chiếm ~55–65% khung,
  *     lệch một bên theo aspect (dọc: neo TRÊN, ngang: neo PHẢI)
  *  4) khối title RẤT LỚN font heading của style + kẻ gradient + logo/brand
+ *
+ * Style phẳng (effects.gradient và liquidGlass đều tắt) dùng bố cục "Nhãn
+ * dán" ở ThumbnailStickers.tsx thay cho bố cục tối dưới đây.
  *
  * ⚠️ Gradient text (background-clip: text) với TIẾNG VIỆT dễ cắt dấu (Ằ, ộ):
  * span phải inline-block + padding-top ~0.5em (+ padding-bottom cho dấu nặng)
@@ -65,12 +69,11 @@ const fontFamily = (brandFamily: string | null, preferred: string): string => {
   return brandFamily ? `'${brandFamily}', ${tail}` : tail;
 };
 
-export const Thumbnail: React.FC<ThumbnailProps> = ({
-  background,
-  frame,
-  title,
-  design,
-}) => {
+export const Thumbnail: React.FC<ThumbnailProps> = (props) => {
+  const { background, frame, title, design } = props;
+  if (!design.effects.gradient && !design.effects.liquidGlass) {
+    return <ThumbnailStickers {...props} />;
+  }
   // width/height do calculateMetadata đặt từ aspect (THUMBNAIL_DIMENSIONS).
   const { width, height } = useVideoConfig();
   const { colors, fonts, fontFiles, effects, logoFile, brandName } = design;

@@ -32,7 +32,8 @@ import type { ImageAspect } from "../imageMeta.js";
 const router = Router();
 
 // POST /api/projects/:id/thumbnail
-// { title, frameAt?: number (giây, default 1), sourceRel?, bgPrompt?, styleId? }
+// { title, frameAt?: number (giây, default 1), sourceRel?, bgPrompt?, styleId?,
+//   tags?: string[] (≤3, bố cục "Nhãn dán" của style phẳng), tagColors?: string[] (hex) }
 // → 201 { file: "thumbnail.png", relPath }
 router.post("/:id/thumbnail", async (req, res) => {
   const id = req.params.id;
@@ -50,6 +51,19 @@ router.post("/:id/thumbnail", async (req, res) => {
       ? body.frameAt
       : 1;
   const bgPrompt = typeof body.bgPrompt === "string" ? body.bgPrompt.trim() : "";
+  const tags = Array.isArray(body.tags)
+    ? body.tags
+        .filter((t): t is string => typeof t === "string")
+        .map((t) => t.trim())
+        .filter((t) => t !== "")
+        .slice(0, 3)
+    : [];
+  if (tags.some((t) => t.length > 24)) {
+    throw new HttpError(400, "TAG_TOO_LONG", "Mỗi từ khóa thumbnail tối đa 24 ký tự");
+  }
+  const tagColors = Array.isArray(body.tagColors)
+    ? body.tagColors.filter((c): c is string => typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c)).slice(0, 3)
+    : [];
   if ("styleId" in body && body.styleId !== null && typeof body.styleId !== "string") {
     throw new HttpError(400, "INVALID_STYLE_ID", "styleId phải là string hoặc null");
   }
@@ -131,7 +145,10 @@ router.post("/:id/thumbnail", async (req, res) => {
   const aspect: ImageAspect = meta.height >= meta.width ? "9:16" : "16:9";
   const bgAbs = path.join(rendersDir, "thumb-bg.png");
   let hasBg = false;
-  if (geminiApiKey()) {
+  // Style phẳng dùng bố cục "Nhãn dán" (frame tràn khung, không ảnh nền) -
+  // khỏi tốn một lượt Gemini cho nền sẽ không được vẽ
+  const flatStyle = !design.effects.gradient && !design.effects.liquidGlass;
+  if (geminiApiKey() && !flatStyle) {
     try {
       await generateBackground({
         prompt: bgPrompt || `background for a video thumbnail about: ${title}`,
@@ -184,6 +201,8 @@ router.post("/:id/thumbnail", async (req, res) => {
     background: hasBg ? stage(bgAbs, "bg-") : null,
     frame: stage(frameAbs, "frame-"),
     title,
+    tags,
+    tagColors,
     design: {
       colors: design.colors,
       fonts: design.fonts,

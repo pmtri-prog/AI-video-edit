@@ -39,6 +39,10 @@ export const thumbnailSchema = z.looseObject({
   frame: z.string().nullable().default(null),
   /** Title giật tít — chữ rất lớn, font heading của style. */
   title: z.string().default(""),
+  /** Từ khóa trên viên dán (bố cục "Nhãn dán" của style phẳng), tối đa 3. */
+  tags: z.array(z.string()).default([]),
+  /** Màu nền từng viên theo thứ tự; thiếu thì suy từ design.colors. */
+  tagColors: z.array(z.string()).default([]),
   /** Style Design đã resolve (cùng hợp đồng với Poster — docs/API.md). */
   design: posterDesignSchema.prefault({}),
 });
