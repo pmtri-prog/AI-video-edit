@@ -24,6 +24,7 @@ import {
   type AutoCutParams,
   type Brief,
   type FileInfo,
+  getAutoCutDefaults,
 } from "@/lib/api";
 import { useUploadEvents } from "@/lib/useEvents";
 import { Button } from "@/components/Button";
@@ -174,6 +175,41 @@ export function AutoCutCreateModal({
   useEffect(() => {
     if (open) loadSources();
   }, [open, loadSources]);
+
+  /*
+   * Mỗi lần mở modal: điền sẵn cấu hình lần trước (cách cắt, khung, style,
+   * kịch bản edit, tự edit). Người làm cùng một kiểu video mỗi ngày không phải
+   * chọn lại từ đầu. Lỗi mạng thì im lặng giữ mặc định cứng - form vẫn dùng được.
+   * Tên, nguồn và câu mô tả (prompt) là của riêng từng video nên không điền.
+   */
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    getAutoCutDefaults()
+      .then((d) => {
+        if (!alive) return;
+        setMode(d.mode);
+        const p = d.params;
+        if (p.minutes !== undefined) setMinutes(String(p.minutes));
+        if (p.overlapSec !== undefined) setOverlapSec(String(p.overlapSec));
+        if (p.count !== undefined) setCount(String(p.count));
+        if (p.minSec !== undefined) setMinSec(String(p.minSec));
+        if (p.maxSec !== undefined) setMaxSec(String(p.maxSec));
+        setAspect(d.output.aspect);
+        setLayout(d.output.layout);
+        setBackground(d.output.background);
+        setStyleId(d.output.styleId);
+        setTranscribe(d.transcribe);
+        setAutoEdit(d.autoEdit);
+        setBrief(d.brief);
+      })
+      .catch(() => {
+        /* giữ mặc định cứng */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [open]);
 
   // Tiến trình server nhận file - upload vào imports/ không kèm projectId
   useUploadEvents((e) => {

@@ -26,6 +26,7 @@ import {
   type AutoCutSource,
 } from "../autoCutMeta.js";
 import { applyBriefPatch, defaultBrief, type Brief } from "../meta.js";
+import { getPrefs, prefBool, prefObject, rememberPrefs } from "../prefs.js";
 import { queue } from "../queue.js";
 import { styleExists } from "../styles.js";
 import {
@@ -108,6 +109,101 @@ function parseBriefPatch(raw: unknown, base: Brief): Brief {
   }
   const { styleId: _ignored, ...rest } = raw as Record<string, unknown>;
   return applyBriefPatch(base, rest);
+}
+
+// ------------------------------------------------------------------ prefs
+
+/**
+ * Field brief gắn với MỘT video cụ thể - không đáng nhớ sang phiên sau (nội dung
+ * video này không liên quan video kế tiếp). Phần còn lại của brief là "gu edit".
+ */
+const PER_VIDEO_BRIEF_KEYS = [
+  "sourceDescription",
+  "mainKey",
+  "relatedKeys",
+  "highlightKeywords",
+  "notes",
+] as const;
+
+function briefTasteOf(brief: Brief): Partial<Brief> {
+  const taste: Partial<Brief> = { ...brief };
+  for (const k of PER_VIDEO_BRIEF_KEYS) delete taste[k];
+  delete taste.styleId; // phiên cắt lấy style từ output.styleId
+  return taste;
+}
+
+/** Thử normalize một giá trị đã nhớ; file prefs sửa tay/hỏng thì về mặc định */
+function orDefault<T>(fn: () => T, def: T): T {
+  try {
+    return fn();
+  } catch {
+    return def;
+  }
+}
+
+interface AutoCutDefaults {
+  mode: AutoCutMode;
+  params: AutoCutParams;
+  output: AutoCutOutput;
+  brief: Brief;
+  transcribe: boolean;
+  autoEdit: boolean;
+}
+
+/**
+ * Mặc định cho phiên MỚI = lần trước người dùng chọn gì (xem prefs.ts), không
+ * phải hằng số trong mã. Mọi giá trị nhớ đều đi qua đúng bộ parse của route nên
+ * prefs.json có bị sửa tay sai cũng không lọt giá trị bậy vào phiên cắt.
+ * `params` nhớ theo từng mode để đổi mode trong form không mang số của mode khác.
+ */
+function autoCutDefaults(modeOverride?: AutoCutMode): AutoCutDefaults {
+  const pref = getPrefs("auto-cut");
+  const mode =
+    modeOverride ?? orDefault(() => parseMode(pref.mode), "time" as AutoCutMode);
+  const paramsByMode = (prefObject(pref, "paramsByMode") ?? {}) as Record<string, unknown>;
+  const params = orDefault(
+    () => parseParams(mode === "prompt" ? "ai" : mode, paramsByMode[mode], {}),
+    parseParams(mode === "prompt" ? "ai" : mode, undefined, {}),
+  );
+  const baseOutput: AutoCutOutput = {
+    aspect: "9:16",
+    layout: "auto",
+    background: "gemini",
+    styleId: null,
+    fps: null,
+  };
+  const prefOutput = prefObject(pref, "output") as Record<string, unknown> | undefined;
+  // Style đã nhớ có thể đã bị xóa: bỏ riêng styleId chứ đừng vứt cả khung/layout
+  const output = orDefault(
+    () => parseOutput(prefOutput, baseOutput),
+    orDefault(() => parseOutput({ ...prefOutput, styleId: null }, baseOutput), baseOutput),
+  );
+  const brief = orDefault(
+    () => parseBriefPatch(prefObject(pref, "brief"), defaultBrief()),
+    defaultBrief(),
+  );
+  const transcribe = orDefault(
+    () => parseTranscribe(mode, prefBool(pref, "transcribe"), true),
+    true,
+  );
+  return { mode, params, output, brief, transcribe, autoEdit: prefBool(pref, "autoEdit") ?? false };
+}
+
+/** Nhớ cấu hình của một phiên vừa ghi thành công (bỏ phần riêng của video) */
+function rememberAutoCut(meta: AutoCutMeta): void {
+  const pref = getPrefs("auto-cut");
+  const paramsByMode = { ...((prefObject(pref, "paramsByMode") ?? {}) as Record<string, unknown>) };
+  // `request` là câu mô tả của RIÊNG video này - không nhớ
+  const { request: _request, ...params } = meta.params;
+  paramsByMode[meta.mode] = params;
+  rememberPrefs("auto-cut", {
+    mode: meta.mode,
+    paramsByMode,
+    output: meta.output,
+    brief: briefTasteOf(meta.brief),
+    transcribe: meta.transcribe,
+    autoEdit: meta.autoEdit,
+  });
 }
 
 /** Id kebab-case duy nhất, không trùng thư mục có sẵn trong auto-cut/ */
@@ -490,6 +586,16 @@ router.get("/", (_req, res) => {
   res.json({ sessions: scanAutoCuts() });
 });
 
+/**
+ * GET /api/auto-cut/defaults[?mode=] -> AutoCutDefaults
+ * Cấu hình mặc định cho form tạo phiên = lần trước người dùng chọn gì.
+ * ĐẶT TRƯỚC GET /:id, nếu không "defaults" sẽ bị bắt như một id phiên cắt.
+ */
+router.get("/defaults", (req, res) => {
+  const mode = req.query.mode === undefined ? undefined : parseMode(req.query.mode);
+  res.json(autoCutDefaults(mode));
+});
+
 // GET /api/auto-cut/:id -> { session: AutoCutMeta }
 router.get("/:id", (req, res) => {
   res.json({ session: readAutoCut(req.params.id) });
@@ -522,19 +628,14 @@ router.post("/", async (req, res) => {
   // Validate toàn bộ tham số TRƯỚC khi gọi ffprobe - body sai thì trả lỗi ngay,
   // không tốn một lần spawn ffprobe (video 4K vài GB mất cả giây để mở).
   const mode = parseMode(body.mode);
-  const defaultOutput: AutoCutOutput = {
-    aspect: "9:16",
-    layout: "auto",
-    background: "gemini",
-    styleId: null,
-    fps: null,
-  };
-  const params = parseParams(mode, body.params, {});
-  const output = parseOutput(body.output, defaultOutput);
-  const transcribe = parseTranscribe(mode, body.transcribe, true);
-  const autoEdit = parseBool(body.autoEdit, false, "autoEdit");
+  // Field nào body không gửi thì lấy cấu hình người dùng chọn lần trước
+  const def = autoCutDefaults(mode);
+  const params = parseParams(mode, body.params, def.params);
+  const output = parseOutput(body.output, def.output);
+  const transcribe = parseTranscribe(mode, body.transcribe, def.transcribe);
+  const autoEdit = parseBool(body.autoEdit, def.autoEdit, "autoEdit");
   // Cấu hình edit áp cho mọi project con - cùng bộ luật với PUT /projects/:id/brief
-  const brief = parseBriefPatch(body.brief, defaultBrief());
+  const brief = parseBriefPatch(body.brief, def.brief);
 
   const source: AutoCutSource = {
     // Chuẩn hóa lại relPath từ đường dẫn tuyệt đối - client có thể gửi "\" hoặc "./"
@@ -566,6 +667,8 @@ router.post("/", async (req, res) => {
     updatedAt: now,
   };
   writeAutoCut(meta);
+  // Nhớ SAU khi ghi thành công: lựa chọn bị 400 thì không đáng được nhớ
+  rememberAutoCut(meta);
   res.status(201).json({ session: readAutoCut(meta.id) });
 });
 
@@ -635,6 +738,10 @@ router.patch("/:id", (req, res) => {
   }
 
   writeAutoCut(meta);
+  // Chỉ nhớ khi người dùng đổi cấu hình (đổi tên / sửa danh sách đoạn thì không)
+  if (["params", "output", "brief", "transcribe", "autoEdit"].some((k) => k in body)) {
+    rememberAutoCut(meta);
+  }
   res.json({ session: readAutoCut(meta.id) });
 });
 
