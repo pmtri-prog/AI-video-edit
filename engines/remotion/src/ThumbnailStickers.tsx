@@ -14,6 +14,9 @@ import type { ThumbnailProps } from "./thumbnailManifest";
  *  - thẻ dưới chứa title, chữ đặc màu text; câu không có dấu kết thì thêm
  *    dấu chấm màu primary (chữ ký TryOh!)
  *
+ * Cố ý KHÔNG có logo: kênh TikTok của Trí bỏ logo góc lẫn end card (TikTok hạn
+ * chế watermark), ảnh bìa theo cùng quyết định đó.
+ *
  * Mọi chữ nằm trong vùng giữa 3:4 (y 16,6%-83,3%) vì lưới trang cá nhân
  * TikTok chỉ hiện phần đó của ảnh bìa.
  */
@@ -39,7 +42,8 @@ const PILL_ROTATE = [-6, 5, -3];
 export const ThumbnailStickers: React.FC<ThumbnailProps> = ({ frame, title, tags, tagColors, design }) => {
   const { width, height } = useVideoConfig();
   const { colors, fonts, fontFiles } = design;
-  const u = width / 1080;
+  // Theo cạnh NGẮN: khung 16:9 dùng cùng cỡ chữ với 9:16 thay vì phóng gấp 1,8 lần
+  const u = Math.min(width, height) / 1080;
 
   const hasBrandHeading = ensureBrandFont(BRAND_HEADING_FAMILY, fontFiles.heading);
   const headingFont = `${hasBrandHeading ? `'${BRAND_HEADING_FAMILY}', ` : ""}'${fonts.heading.replace(/'/g, "")}', 'Segoe UI', sans-serif`;

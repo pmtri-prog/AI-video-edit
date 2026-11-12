@@ -68,6 +68,7 @@ node scripts/layout-qc.mjs video-projects/<id>
 - Exit 0 = pass, 2 = issues (printed with time range), 1 = could not run.
 - Tag your layers: overlay text/cards `data-layer="ui"`, full-frame media `data-layer="bg"`. Untagged compositions fall back to `.cue, .card` with a warning.
 - Fix every issue and re-run before rendering. Report the final QC line in the video report.
+- It checks the HyperFrames `index.html` only. Overlays rendered by Remotion (e.g. the TryOh! layer in `meta.json` → `tryoh`) and `data-composition-src` sub-scenes are not covered - for those, extract frames from the draft and check the 140px right margin by eye.
 
 ## Known issues
 

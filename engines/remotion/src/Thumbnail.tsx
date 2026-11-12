@@ -69,11 +69,15 @@ const fontFamily = (brandFamily: string | null, preferred: string): string => {
   return brandFamily ? `'${brandFamily}', ${tail}` : tail;
 };
 
-export const Thumbnail: React.FC<ThumbnailProps> = (props) => {
-  const { background, frame, title, design } = props;
-  if (!design.effects.gradient && !design.effects.liquidGlass) {
-    return <ThumbnailStickers {...props} />;
-  }
+/** Chọn bố cục theo style: phẳng → "Nhãn dán", còn lại → bố cục tối mặc định */
+export const Thumbnail: React.FC<ThumbnailProps> = (props) =>
+  !props.design.effects.gradient && !props.design.effects.liquidGlass ? (
+    <ThumbnailStickers {...props} />
+  ) : (
+    <ThumbnailClassic {...props} />
+  );
+
+const ThumbnailClassic: React.FC<ThumbnailProps> = ({ background, frame, title, design }) => {
   // width/height do calculateMetadata đặt từ aspect (THUMBNAIL_DIMENSIONS).
   const { width, height } = useVideoConfig();
   const { colors, fonts, fontFiles, effects, logoFile, brandName } = design;

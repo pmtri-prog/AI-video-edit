@@ -335,7 +335,8 @@ Style resolve: `body.styleId` → `brief.styleId` → default. `GET /api/project
 Style Design **phẳng** (`effects.gradient` và `effects.liquidGlass` đều false, vd TryOh!) dùng bố cục
 "Nhãn dán" (`ThumbnailStickers.tsx`): frame tràn khung, không gọi Gemini vẽ nền, tối đa 3 `tags`
 (string ≤ 24 ký tự) trên viên màu dán ngay trên thẻ title, `tagColors` (hex, theo thứ tự) - thiếu thì
-suy từ màu style. Viên neo theo thẻ title nên không bao giờ đè lên mặt ở giữa khung.
+suy từ màu style. Viên neo theo thẻ title nên không bao giờ đè lên mặt ở giữa khung. Bố cục này
+không vẽ logo và bỏ qua `bgPrompt` (không có ảnh nền).
 
 ## Quay màn hình làm cảnh trám (POST /api/projects/:id/screen-capture)
 

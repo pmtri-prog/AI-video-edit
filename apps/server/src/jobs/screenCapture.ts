@@ -27,6 +27,8 @@ export interface ScreenCaptureRequest {
   seconds: number;
   /** CSS selector cần làm mờ (tên, số điện thoại trên dashboard...) */
   blurSelectors: string[];
+  /** Danh sách host cho phép lúc tạo yêu cầu - script kiểm lại MỌI lần điều hướng (redirect) */
+  allowedHosts: string[];
   /** Tên file ra trong assets/screen/ (kebab-case, không đuôi) */
   name: string;
   createdAt: string;
@@ -60,6 +62,7 @@ export async function runScreenCapture(ctx: JobCtx): Promise<void> {
   const outAbs = path.join(dir, freeScreenFileName(projectId, req.name));
 
   ctx.progress(2, `Mở ${req.url}`);
+  let ms: number | null = null;
   try {
     await ctx.exec(
       process.execPath,
@@ -70,12 +73,15 @@ export async function runScreenCapture(ctx: JobCtx): Promise<void> {
         if (m) ctx.progress(5 + (90 * Number(m[1])) / Number(m[2]), "Đang quay màn hình");
       },
     );
+    ms = await ffprobeDurationMs(outAbs);
+    if (!ms) throw new Error("Quay xong nhưng file ra không đọc được");
+  } catch (err) {
+    // Hủy giữa chừng / lỗi: không để clip dở trong assets/ cho agent nhặt nhầm
+    fs.rmSync(outAbs, { force: true });
+    throw err;
   } finally {
     fs.rmSync(reqPath, { force: true });
   }
-
-  const ms = await ffprobeDurationMs(outAbs);
-  if (!ms) throw new Error("Quay xong nhưng file ra không đọc được");
   const rel = toRepoRel(outAbs);
   // outputPath để agent đọc qua GET /api/jobs/:id rồi tham chiếu trong composition
   updateJob(jobId, { outputPath: rel });

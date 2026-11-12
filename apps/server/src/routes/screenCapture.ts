@@ -6,7 +6,7 @@ import { repoRoot } from "../config.js";
 import * as db from "../db.js";
 import { broadcast } from "../events.js";
 import { writeScreenCaptureRequest } from "../jobs/screenCapture.js";
-import { briefOf, projectExists, readMeta } from "../meta.js";
+import { briefOf, projectDirOf, projectExists, readMeta } from "../meta.js";
 import { queue } from "../queue.js";
 import { HttpError, nowIso, toKebabAscii } from "../util.js";
 
@@ -87,6 +87,13 @@ router.post("/:id/screen-capture", (req, res) => {
   }
   const name = toKebabAscii(optText(body.name, "name") ?? host).slice(0, 60) || "screen";
 
+  // Dọn file yêu cầu của job đã kết thúc mà chưa chạy (vd bị hủy khi còn chờ)
+  for (const f of fs.readdirSync(projectDirOf(id))) {
+    const m = /^screen-capture-(job_[\w-]+)\.json$/.exec(f);
+    const st = m ? db.getJob(m[1])?.status : null;
+    if (m && st !== "queued" && st !== "running") fs.rmSync(path.join(projectDirOf(id), f), { force: true });
+  }
+
   const jobId = `job_${nanoid()}`;
   writeScreenCaptureRequest(id, {
     jobId,
@@ -95,6 +102,7 @@ router.post("/:id/screen-capture", (req, res) => {
     endText: optText(body.endText, "endText"),
     seconds,
     blurSelectors,
+    allowedHosts: hosts,
     name,
     createdAt: nowIso(),
   });
