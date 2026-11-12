@@ -7,6 +7,8 @@
 Nguồn: quy chuẩn thương hiệu ActivOS (chốt 05/11/2026) và doc "Kế hoạch TikTok cá nhân của Trí" (mục 2, 5, 5B, 9, 12, 13 — bản 12/11/2026).
 Các thông số riêng cho định dạng video (cỡ chữ, vùng an toàn) do mình thêm vào, quy chuẩn gốc chưa có. Đã duyệt dùng cố định ngày 12/11/2026.
 
+> **Cập nhật 12/11/2026: video dùng nhận diện TryOh! v1.0.** Màu và font lấy từ bộ nhận diện TryOh trong `assets/brand/tryoh/` (bảng màu `03-mau/mau-tryoh.txt`, font `04-chu/font-tryoh.txt`). Mục 3 (Màu), mục 4 (Chữ: font) và màu 3 vạch ở mục 5 bên dưới là bản ActivOS cũ, **không còn dùng cho phần nhìn**; thông số thay thế nằm ở skill `activos-tiktok` mục 2–3. Mọi luật còn lại (lời thoại, từ cấm, số liệu, tên khách, hình ảnh thật, không lộ mặt, công thức Wow → Consent → Engage) giữ nguyên.
+
 ---
 
 ## 1. Kênh này là gì
@@ -33,7 +35,7 @@ Các thông số riêng cho định dạng video (cỡ chữ, vùng an toàn) do
 - **Snap & Sample:** sắp ra mắt. Hình nào dùng phải ghi "Hình minh hoạ".
 - **SiliconZ:** không xuất hiện trên video.
 
-## 3. Màu
+## 3. Màu (bản ActivOS cũ - phần nhìn đã chuyển sang TryOh!, xem đầu file)
 
 | Token | Hex | Dùng cho |
 |---|---|---|
