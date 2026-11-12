@@ -209,6 +209,45 @@ export const watermarkSchema = z.looseObject({
   opacity: z.number().min(0).max(1).default(0.9),
 });
 
+/**
+ * Lớp nhìn TryOh! (skill activos-tiktok). Mọi mốc là FRAME TUYỆT ĐỐI trên timeline.
+ * Có field này thì Assemble dùng phụ đề/thẻ/end card TryOh! thay cho CaptionTrack mặc định.
+ */
+export const tryohCardSchema = z.looseObject({
+  from: z.number().int().min(0),
+  durationInFrames: z.number().int().positive(),
+  /** Màu theo lớp: wow = hồng, consent = xanh trời, engage = vàng trứng, none = cát */
+  layer: z.enum(["wow", "consent", "engage", "none"]),
+  headline: z.string().min(1),
+  /** Câu trọn ý kết thúc bằng dấu chấm đỏ TryOh!; một thuật ngữ đơn thì không */
+  dot: z.boolean().default(false),
+  /** Nhãn mono nhỏ dưới tiêu đề (ngày, nơi) */
+  label: z.string().optional(),
+  /** Thẻ số lớn (200px) thay cho tiêu đề 120px */
+  big: z.boolean().default(false),
+});
+
+/** Key layout: main = key chính (band trên), sub = key liên quan (band dưới), status = thẻ "Đang thử nghiệm" */
+export const tryohKeySchema = z.looseObject({
+  from: z.number().int().min(0),
+  durationInFrames: z.number().int().positive(),
+  tier: z.enum(["main", "sub", "status"]),
+  text: z.string().min(1),
+});
+
+export const tryohSchema = z.looseObject({
+  /** Cấp đang nói tới từ frame `from`: 1/2/3, 0 = không cấp nào (cả ba vạch sáng) */
+  levels: z.array(z.looseObject({ from: z.number().int().min(0), level: z.number().int().min(0).max(3) })).default([]),
+  cards: z.array(tryohCardSchema).default([]),
+  /** Thẻ nguồn hiện suốt beat có thuật ngữ/số */
+  sources: z
+    .array(z.looseObject({ from: z.number().int().min(0), durationInFrames: z.number().int().positive(), text: z.string().min(1) }))
+    .default([]),
+  keys: z.array(tryohKeySchema).default([]),
+  /** End card nối sau scene cuối, số frame (2,5s = 75 @30fps) */
+  endCardFrames: z.number().int().min(0).default(0),
+});
+
 export const manifestSchema = z.looseObject({
   id: z.string().min(1),
   name: z.string(),
@@ -237,6 +276,8 @@ export const manifestSchema = z.looseObject({
    * Rỗng = không overlay.
    */
   overlays: z.array(highlightCueSchema).default([]),
+  /** Lớp nhìn TryOh! - bỏ trống = overlay mặc định */
+  tryoh: tryohSchema.optional(),
   /** Logo thương hiệu đóng góc - null = Style Design không có logo */
   watermark: watermarkSchema.nullable().default(null),
   output: z.string().nullable().optional(),
@@ -251,6 +292,8 @@ export type SubtitleCue = z.infer<typeof subtitleCueSchema>;
 export type SubtitleStyle = z.infer<typeof subtitleStyleSchema>;
 export type HighlightCue = z.infer<typeof highlightCueSchema>;
 export type Watermark = z.infer<typeof watermarkSchema>;
+export type Tryoh = z.infer<typeof tryohSchema>;
+export type TryohCard = z.infer<typeof tryohCardSchema>;
 export type Scene = z.infer<typeof sceneSchema>;
 export type Manifest = z.infer<typeof manifestSchema>;
 
@@ -282,5 +325,5 @@ export const totalDurationInFrames = (manifest: Manifest): number => {
     total = Math.max(total, from + duration);
     from += duration - (scene.transitionOverlap ?? 0);
   }
-  return Math.max(1, total);
+  return Math.max(1, total + (manifest.tryoh?.endCardFrames ?? 0));
 };

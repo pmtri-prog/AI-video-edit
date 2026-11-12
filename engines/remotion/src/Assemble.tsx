@@ -11,6 +11,9 @@ import { SceneClip } from "./components/SceneClip";
 import { SfxTrack } from "./components/SfxTrack";
 import { SubtitleTrack } from "./components/SubtitleTrack";
 import { Transition } from "./components/Transition";
+import { TryohCaptions } from "./components/TryohCaptions";
+import { TryohEndCard } from "./components/TryohEndCard";
+import { TryohOverlay } from "./components/TryohOverlay";
 
 /**
  * Composition "Assemble" duy nhất — data-driven hoàn toàn từ manifest
@@ -22,7 +25,7 @@ import { Transition } from "./components/Transition";
  * crossfade do <Transition> xử lý bằng opacity.
  */
 export const Assemble: React.FC<Manifest> = (manifest) => {
-  const { scenes, audio, fps, captions, overlays, watermark, subtitles, subtitleStyle } =
+  const { scenes, audio, fps, captions, overlays, watermark, subtitles, subtitleStyle, tryoh } =
     manifest;
 
   let from = 0;
@@ -46,6 +49,13 @@ export const Assemble: React.FC<Manifest> = (manifest) => {
   return (
     <AbsoluteFill style={{ backgroundColor: "#101113" }}>
       {sequences}
+
+      {tryoh ? <TryohOverlay tryoh={tryoh} fps={fps} /> : null}
+      {tryoh && tryoh.endCardFrames > 0 ? (
+        <Sequence from={from} durationInFrames={tryoh.endCardFrames}>
+          <TryohEndCard />
+        </Sequence>
+      ) : null}
 
       {/* Thẻ làm nổi bật key — trên footage, dưới phụ đề (nếu có cả hai thì
           phụ đề là lớp trên cùng vì nó đọc liên tục). Có phụ đề → `raised`
@@ -73,7 +83,9 @@ export const Assemble: React.FC<Manifest> = (manifest) => {
       ) : null}
 
       {/* Phụ đề karaoke nằm TRÊN mọi scene, dưới không có gì — overlay cuối cùng */}
-      {captions.length > 0 ? <CaptionTrack captions={captions} /> : null}
+      {captions.length > 0 ? (
+        tryoh ? <TryohCaptions captions={captions} levels={tryoh.levels} /> : <CaptionTrack captions={captions} />
+      ) : null}
 
       {/* Voice: xương sống sync — một track chạy suốt từ frame 0 */}
       {audio.voice ? <Audio src={staticFile(audio.voice)} /> : null}
