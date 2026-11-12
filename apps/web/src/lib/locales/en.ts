@@ -468,6 +468,10 @@ export const en: Record<string, string> = {
   "brief.sum-source": "Source description",
   "brief.sum-options": "Options",
   "brief.badge-cut": "Cut",
+  "brief.broll-label": "TryOh library (real b-roll)",
+  "brief.broll-hint":
+    "AI overlays real event footage and photos from the TryOh library when the speech mentions an event, brand or machine. Only clips already downloaded are used; missing ones are listed in the report.",
+  "brief.badge-broll": "TryOh library",
   "brief.badge-illustrations": "AI illustrations",
   "brief.sfx.recommended": "Use the recommended set",
   "brief.sfx.library": "AI searches the library",
@@ -480,7 +484,7 @@ export const en: Record<string, string> = {
   "brief.source-placeholder": "e.g. A talking-head clip of me covering 3 ad-campaign mistakes, ~90 seconds, shot vertical",
   "brief.notes-label": "Edit request (prompt)",
   "brief.notes-hint": "The main content sent to the AI - describe how you want the video edited.",
-  "brief.notes-placeholder": "e.g. Edit in the Noti TikTok style - kinetic text on key points, karaoke subtitles, keep it professional, insert b-roll when the product is mentioned…",
+  "brief.notes-placeholder": "e.g. Edit in the TryOh! TikTok style - kinetic text on key points, karaoke subtitles, keep it professional, insert b-roll when the product is mentioned…",
   "brief.use-prompt-aria": "Use a prompt template",
   "brief.use-prompt": "Use a prompt template…",
   "brief.no-prompts": "No prompt templates yet",
@@ -821,7 +825,7 @@ export const en: Record<string, string> = {
   "stylesPage.delete-n": "Delete {n} styles",
   "stylesPage.create-error": "Could not create the style.",
   "stylesPage.name-label": "Style name",
-  "stylesPage.name-placeholder": "e.g. Noti.vn dark fintech",
+  "stylesPage.name-placeholder": "e.g. TryOh! cream",
   "stylesPage.clone-from": "Copy from",
   "stylesPage.blank": "Blank",
   "stylesPage.clone-hint": "Pick an existing style to copy all of its colors, fonts, logo, tone and guidelines.",
@@ -925,7 +929,7 @@ export const en: Record<string, string> = {
   "prompts.editor-subtitle": "Templates can be dropped into the Edit request field of a project's brief.",
   "prompts.save-error": "Could not save the prompt template.",
   "prompts.name-label": "Template name",
-  "prompts.name-placeholder": "e.g. Noti TikTok - professional, gentle sound",
+  "prompts.name-placeholder": "e.g. TryOh! TikTok - professional, gentle sound",
   "prompts.content-label": "Prompt content",
   "prompts.content-placeholder": "Describe in detail how you want the AI to edit - style, cut pacing, kinetic text, sound effects…",
   "prompts.load-error": "Could not load the prompt template list.",
@@ -989,6 +993,10 @@ export const en: Record<string, string> = {
 
   // ===== Settings =====
   "config.subtitle": "Hardware acceleration and render settings",
+  "config.interface": "Interface",
+  "config.compact-nav": "Compact menu",
+  "config.compact-nav-hint":
+    "Hide rarely used tabs from the menu (Images, Text to video, Translate video, Voices, Video styles, Assets, Sound effects, Prompts). Menu only - the pages still open by URL. Saved in this browser.",
   "config.keep": "Keep as-is",
   "config.recommended-title": "Recommended for this machine",
   "config.recommended-aria": "recommended",

@@ -5,18 +5,22 @@ import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "./globals.css";
-import { FAVICON } from "@/lib/brand";
 import { Shell } from "@/components/Shell";
 import { StaleChunkGuard } from "@/components/StaleChunkGuard";
 import { LanguageProvider } from "@/lib/i18n";
 import { EventsProvider } from "@/lib/useEvents";
 
+/** SVG nút play, nướng thẳng vào bundle dạng data URI */
+const FAVICON =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="rgb(26,26,26)"/><path d="M12 9l12 7-12 7z" fill="white"/></svg>',
+  );
+
 export const metadata: Metadata = {
-  title: "AI Edit Video by: noti.vn",
+  title: "AI Edit Video",
   description: "Edit video tự động bằng AI",
-  // Data URI biên dịch vào bundle chứ không trỏ tới /brand/favicon.png: chép đè
-  // file trong public/ không đổi được favicon của ứng dụng nữa. Xem
-  // scripts/build-brand.mjs.
+  // Favicon trung tính (nút play) - bản fork này không mang nhận diện noti.vn.
   icons: { icon: FAVICON },
 };
 

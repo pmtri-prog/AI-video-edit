@@ -28,6 +28,7 @@ import { Segmented } from "@/components/Segmented";
 import { Skeleton } from "@/components/Skeleton";
 import { SystemCheckCard } from "@/components/SystemCheckCard";
 import { useT } from "@/lib/i18n";
+import { useCompactNav } from "@/lib/useCompactNav";
 
 const PLATFORM_LABELS: Record<string, string> = {
   win32: "Windows",
@@ -258,6 +259,23 @@ function HardwareCard({ hw }: { hw: HardwareInfo }) {
 
 const APPLIED_NOTICE_MS = 2500;
 
+/** Gu giao diện của máy này - hiện chỉ có "Chế độ gọn" cho menu trái */
+function InterfaceCard() {
+  const { t } = useT();
+  const [compact, setCompact] = useCompactNav();
+  return (
+    <Card title={t("config.interface")}>
+      <SwitchField
+        id="ui-compact-nav"
+        label={t("config.compact-nav")}
+        hint={t("config.compact-nav-hint")}
+        checked={compact}
+        onChange={setCompact}
+      />
+    </Card>
+  );
+}
+
 export default function ConfigPage() {
   const { t, tf } = useT();
   const [data, setData] = useState<RenderSettingsResponse | null>(null);
@@ -369,6 +387,8 @@ export default function ConfigPage() {
       <SystemCheckCard />
 
       {hw && <HardwareCard hw={hw} />}
+
+      <InterfaceCard />
 
       {settings && data && (
         <Card

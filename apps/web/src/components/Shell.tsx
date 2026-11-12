@@ -66,8 +66,8 @@ import { HardwareMeter } from "@/components/HardwareMeter";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UpdateBadge } from "@/components/UpdateBadge";
-import { LOGO_DARK, LOGO_LIGHT } from "@/lib/brand";
 import { useT } from "@/lib/i18n";
+import { useCompactNav } from "@/lib/useCompactNav";
 
 /** Mã nguồn dự án - hiện ở cuối sidebar, ngay trên badge phiên bản */
 const REPO_URL = "https://github.com/notivn/AIEV";
@@ -132,6 +132,22 @@ const NAV = [
   { href: "/config", label: "nav.config", icon: Settings2 },
   { href: "/connections", label: "nav.connections", icon: Plug },
 ] as const;
+
+/**
+ * Tab ẩn khi bật "Chế độ gọn" (Cấu hình). Giữ lại đúng luồng raw -> Auto cut ->
+ * Videos Project -> render, cộng các trang cấu hình nền (Style Design, Skills,
+ * Cấu hình, Kết nối). Chỉ ẩn khỏi menu, route vẫn mở được bằng URL.
+ */
+const COMPACT_HIDDEN: ReadonlySet<string> = new Set([
+  "/images",
+  "/text-to-video",
+  "/translate-video",
+  "/voices",
+  "/video-styles",
+  "/assets",
+  "/sfx",
+  "/prompts",
+]);
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -259,6 +275,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   /** Chỉ để nhãn aria/tooltip nói đúng - bề rộng rail là việc của CSS */
   const [navCollapsed, setNavCollapsed] = useState(false);
+  const [compactNav] = useCompactNav();
 
   // Trạng thái THẤY ĐƯỢC của rail = thuộc tính data-nav mà SHELL_SCRIPT đã ghi,
   // cộng phép tự gấp theo bề rộng khi chưa có lựa chọn rõ ràng. Đọc thuộc tính
@@ -336,16 +353,8 @@ export function Shell({ children }: { children: ReactNode }) {
 
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-4">
           <Link href="/" className="flex shrink-0 items-center">
-            {/* Logo đổi theo theme qua CSS trong globals.css.
-                Nguồn ảnh là hằng số data URI biên dịch vào bundle
-                (src/lib/brand.ts), KHÔNG phải file trong public/: nhận diện của
-                chính ứng dụng không được đổi bằng cách chép đè một file PNG.
-                Logo người dùng tải lên ở Style Design đi đường khác hẳn
-                (assets/styles → /media), chỉ dùng đóng dấu lên video. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={LOGO_LIGHT} alt="noti.vn" className="logo-light h-7 w-auto" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={LOGO_DARK} alt="noti.vn" className="logo-dark h-7 w-auto" />
+            {/* Tên ứng dụng dạng chữ: bản fork này không mang nhận diện noti.vn. */}
+            <span className="text-sm font-semibold">AI Edit Video</span>
           </Link>
 
           {/* Nút gấp/mở rail KHÔNG còn ở header: nó nằm dưới đáy chính cái rail
@@ -419,7 +428,14 @@ export function Shell({ children }: { children: ReactNode }) {
               className="flex flex-col gap-1"
               aria-label={t("shell.nav-aria")}
             >
-              {NAV.map(({ href, label, icon: Icon }) => {
+              {NAV.filter(
+                // Trang đang mở thì luôn hiện, kể cả khi bị ẩn: người dùng vào
+                // bằng URL vẫn phải thấy mình đang ở đâu.
+                (n) =>
+                  !compactNav ||
+                  !COMPACT_HIDDEN.has(n.href) ||
+                  isActive(pathname, n.href),
+              ).map(({ href, label, icon: Icon }) => {
                 const text = t(label);
                 return (
                   <Link

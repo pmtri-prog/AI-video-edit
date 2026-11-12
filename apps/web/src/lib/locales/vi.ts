@@ -468,6 +468,10 @@ export const vi: Record<string, string> = {
   "brief.sum-source": "Mô tả gốc",
   "brief.sum-options": "Tùy chọn",
   "brief.badge-cut": "Cắt",
+  "brief.broll-label": "Kho TryOh (b-roll thật)",
+  "brief.broll-hint":
+    "AI phủ footage và ảnh sự kiện thật từ Kho TryOh lên đoạn nói khi nhắc tới sự kiện, brand hay máy. Chỉ dùng clip đã tải về máy; clip còn thiếu được liệt kê trong báo cáo.",
+  "brief.badge-broll": "Kho TryOh",
   "brief.badge-illustrations": "Minh họa AI",
   "brief.sfx.recommended": "Dùng bộ đề xuất",
   "brief.sfx.library": "AI tự tìm trong thư viện",
@@ -480,7 +484,7 @@ export const vi: Record<string, string> = {
   "brief.source-placeholder": "vd: Clip talking-head tôi nói về 3 sai lầm khi chạy quảng cáo, ~90 giây, quay dọc",
   "brief.notes-label": "Yêu cầu edit (prompt)",
   "brief.notes-hint": "Nội dung chính gửi cho AI - mô tả bạn muốn video được edit thế nào.",
-  "brief.notes-placeholder": "vd: Edit theo phong cách Noti TikTok - chữ động nhấn ý chính, phụ đề karaoke, giữ tông chuyên nghiệp, chèn b-roll khi nhắc tới sản phẩm…",
+  "brief.notes-placeholder": "vd: Edit theo phong cách TikTok TryOh! - chữ động nhấn ý chính, phụ đề karaoke, giữ tông chuyên nghiệp, chèn b-roll khi nhắc tới sản phẩm…",
   "brief.use-prompt-aria": "Dùng prompt mẫu",
   "brief.use-prompt": "Dùng prompt mẫu…",
   "brief.no-prompts": "Chưa có prompt mẫu nào",
@@ -821,7 +825,7 @@ export const vi: Record<string, string> = {
   "stylesPage.delete-n": "Xóa {n} style",
   "stylesPage.create-error": "Không tạo được style.",
   "stylesPage.name-label": "Tên style",
-  "stylesPage.name-placeholder": "vd: Noti.vn dark fintech",
+  "stylesPage.name-placeholder": "vd: TryOh! nền kem",
   "stylesPage.clone-from": "Sao chép từ",
   "stylesPage.blank": "Trống",
   "stylesPage.clone-hint": "Chọn một style có sẵn để sao chép toàn bộ màu, font, logo, tone và guidelines.",
@@ -925,7 +929,7 @@ export const vi: Record<string, string> = {
   "prompts.editor-subtitle": "Prompt mẫu đổ được vào ô Yêu cầu edit trong brief của project.",
   "prompts.save-error": "Không lưu được prompt mẫu.",
   "prompts.name-label": "Tên prompt mẫu",
-  "prompts.name-placeholder": "vd: Noti TikTok - chuyên nghiệp, sound nhẹ nhàng",
+  "prompts.name-placeholder": "vd: TryOh! TikTok - chuyên nghiệp, sound nhẹ nhàng",
   "prompts.content-label": "Nội dung prompt",
   "prompts.content-placeholder": "Mô tả chi tiết bạn muốn AI edit video thế nào - phong cách, nhịp cắt, chữ động, sound effect…",
   "prompts.load-error": "Không tải được danh sách prompt mẫu.",
@@ -989,6 +993,10 @@ export const vi: Record<string, string> = {
 
   // ===== Cấu hình =====
   "config.subtitle": "Tăng tốc phần cứng và cài đặt render",
+  "config.interface": "Giao diện",
+  "config.compact-nav": "Chế độ gọn",
+  "config.compact-nav-hint":
+    "Ẩn các tab ít dùng khỏi menu (Images, Text to video, Dịch video, Giọng đọc, Phong cách dựng, Assets, Sound Effects, Prompts). Chỉ ẩn khỏi menu, vẫn mở được bằng đường dẫn. Lưu trên trình duyệt này.",
   "config.keep": "Giữ nguyên",
   "config.recommended-title": "Khuyên dùng cho máy này",
   "config.recommended-aria": "khuyên dùng",
