@@ -12,5 +12,19 @@
     "content": "Edit video này theo pipeline chia scene + lắp ráp bằng Remotion (làm đúng theo skill video-pipeline và remotion-assemble):\n1. Phân tích video nguồn (transcribe nếu cần) và chia thành các scene rời, khai báo trong meta.json đúng schema: scene chữ động/motion graphics dùng HyperFrames (có src), đoạn footage dùng thẳng khai srcVideo với from/to.\n2. Dựng các scene HyperFrames (chữ động, callout, caption) và render từng scene ra renders/ ở chất lượng draft trước.\n3. Dùng Remotion lắp ráp toàn bài: ghép các scene + footage theo đúng thứ tự timeline, crossfade nhẹ giữa các đoạn (transitionOverlap), voice gốc giữ nguyên làm xương sống sync, chèn sound effect theo atFrame.\n4. Render draft toàn bài bằng Remotion, trích frame verify ở các mốc chuyển cảnh (không hở frame đen, chữ tiếng Việt đủ dấu), sửa xong mới render final.\n5. Cập nhật meta.json đúng hợp đồng (output là STRING đường dẫn outputs/<id>-v<N>.mp4).\nYêu cầu chất lượng: chuyển cảnh mượt, sound effect nhẹ nhàng không chói tai, video nhìn thật chuyên nghiệp.\nLưu ý: nếu brief có Style Design thì màu/font/tone của mọi scene tuân thủ 100% theo Style Design đó.",
     "createdAt": "2026-07-29T13:00:00.000Z",
     "updatedAt": "2026-07-29T13:00:00.000Z"
+  },
+  {
+    "id": "activos-tiktok-chung",
+    "name": "ActivOS TikTok - mẫu chung",
+    "content": "Dùng skill /activos-tiktok để edit video này. Style Design: ActivOS.\nĐọc đủ assets/brand/activos/guideline.md trước khi lên kế hoạch.\n\nBật: cắt khoảng lặng, phụ đề cứng, zoom nhấn nhẹ (tối đa 1 lần mỗi 6-10 giây), sound effect nhẹ đúng các điểm nhấn.\nTắt: ảnh minh họa AI. Chỉ dùng footage thật trong assets.\n\nLàm theo bảng cảnh trong ghi chú (dòng [mm:ss-mm:ss] lop=... cap=... the_chu=... nguon=...). Chữ trong the_chu, nhan, nguon dùng nguyên văn.\nKhông có bảng cảnh thì tự chia nhịp theo công thức Wow → Consent → Engage trong guideline và trình bảng nhịp cho tôi duyệt trước khi dựng.\n\nKết video bằng end card ActivOS (2,5 giây). Không đóng logo góc.\nTrước khi final: chạy bước soát nội dung trong skill và báo kết quả dạng bảng.",
+    "createdAt": "2026-11-12T02:53:08.000Z",
+    "updatedAt": "2026-11-12T02:53:08.000Z"
+  },
+  {
+    "id": "activos-tiktok-v01-ai-nhan",
+    "name": "ActivOS TikTok - Video 1: Ai nhận?",
+    "content": "Dùng skill /activos-tiktok để edit video này. Style Design: ActivOS.\nĐọc đủ assets/brand/activos/guideline.md trước khi lên kế hoạch.\n\nVideo 1 / 10 trong mạch \"Tech experience & data\" - \"Ai nhận?\" (~45 giây).\nFootage cần có trong assets: dòng người ở booth TikTok Beauty Fest quay từ xa (không lộ mặt); Trí nói vào camera.\nTrước khi dựng: tên \"TikTok Beauty Fest\" và số \"5.000+ mẫu một ngày\" phải được Trí xác nhận (bảng 12.3 trong doc kế hoạch). Chưa xác nhận thì dừng lại hỏi.\n\nBật: cắt khoảng lặng, phụ đề cứng, zoom nhấn nhẹ, sound effect nhẹ.\nTắt: ảnh minh họa AI.\n\nBảng cảnh (giờ là ước lượng, khớp theo transcript):\n[00:00-00:03] lop=wow cap=- the_chu=\"5.000+ mẫu · 1 ngày\" nhan=\"TikTok Beauty Fest\" nguon=-\n[00:03-00:10] lop=consent cap=- the_chu=\"Ai nhận?\" nguon=-\n[00:10-00:22] lop=none cap=- (Trí vào khung, chỉ phụ đề, không thẻ chữ)\n[00:22-00:27] lop=wow cap=1 the_chu=\"Cấp 1 · Làm thương hiệu\" nguon=-\n[00:27-00:32] lop=consent cap=2 the_chu=\"Cấp 2 · Thu dữ liệu\" nguon=-\n[00:32-00:37] lop=engage cap=3 the_chu=\"Cấp 3 · Dữ liệu có chiến lược\" nguon=-\n[00:37-00:42] lop=none cap=- the_chu=\"BCG × Google đã đo chuyện này\" nguon=-\n[00:42-00:45] end\n\nCaption gợi ý: Hơn 5.000 mẫu trong một ngày tại TikTok Beauty Fest. Câu khó nhất sau đó: ai nhận? #ActivOS #techexperience #sukien\nTrước khi final: chạy bước soát nội dung trong skill và báo kết quả dạng bảng.",
+    "createdAt": "2026-11-12T02:53:08.000Z",
+    "updatedAt": "2026-11-12T02:53:08.000Z"
   }
 ]
