@@ -102,6 +102,12 @@ export interface Brief {
   musicMode: MusicMode;
   /** BẬT = Claude tự tạo ảnh minh họa bằng Gemini (đồng bộ Design System) và ghép vào video */
   autoIllustrations: boolean;
+  /**
+   * BẬT = được chèn b-roll/ảnh THẬT từ Kho TryOh (danh mục Shared Drive, xem
+   * mediaLibrary.ts) theo lời nói. TẮT = cấm: POST /api/media-library/:id/stage
+   * trả 409 BROLL_DISABLED.
+   */
+  brollLibrary: boolean;
   /** Model Gemini cho ảnh minh họa (null = mặc định Nano Banana 2) */
   illustrationModel: string | null;
   /** BẬT = cho phép Gemini vẽ chữ tiếng Việt vào ảnh minh họa (mặc định TẮT - chữ do Remotion/HyperFrames đặt) */
@@ -158,6 +164,7 @@ export function defaultBrief(): Brief {
     sfxMode: "recommended",
     musicMode: "auto",
     autoIllustrations: false,
+    brollLibrary: false,
     illustrationModel: null,
     illustrationText: false,
     illustrationPosition: "auto",
@@ -208,6 +215,7 @@ export function briefOf(meta: ProjectMeta): Brief {
   if (SFX_MODES.includes(b.sfxMode as SfxMode)) base.sfxMode = b.sfxMode as SfxMode;
   if (MUSIC_MODES.includes(b.musicMode as MusicMode)) base.musicMode = b.musicMode as MusicMode;
   if (typeof b.autoIllustrations === "boolean") base.autoIllustrations = b.autoIllustrations;
+  if (typeof b.brollLibrary === "boolean") base.brollLibrary = b.brollLibrary;
   if (typeof b.illustrationModel === "string" && b.illustrationModel.trim()) {
     base.illustrationModel = b.illustrationModel.trim();
   }
@@ -301,6 +309,7 @@ export function applyBriefPatch(
   strList("relatedKeys");
   nullableStr("skill");
   bool("autoIllustrations");
+  bool("brollLibrary");
   nullableStr("illustrationModel");
   bool("illustrationText");
   str("notes");

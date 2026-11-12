@@ -242,6 +242,8 @@ export interface Brief {
   notes: string;
   /** BẬT = Claude chọn ý chính, Gemini vẽ ảnh minh họa rồi ghép vào video. */
   autoIllustrations: boolean;
+  /** BẬT = AI phủ b-roll/ảnh thật từ Kho TryOh (danh mục Shared Drive) theo lời nói. */
+  brollLibrary: boolean;
   /** Model Gemini vẽ minh họa - null = mặc định của server (Nano Banana 2). */
   illustrationModel: string | null;
   /** BẬT = Gemini được vẽ chữ vào ảnh minh họa (mặc định TẮT - chữ do hệ thống đặt). */
@@ -2424,6 +2426,22 @@ export const getAutoCutSession = (id: string) =>
   request<{ session: AutoCutMeta }>(
     `/api/auto-cut/${encodeURIComponent(id)}`
   ).then((r) => r.session);
+
+/**
+ * Mặc định cho form tạo phiên = cấu hình người dùng chọn lần trước (server nhớ
+ * ở data/prefs.json). Không truyền mode -> lấy luôn mode đã nhớ.
+ */
+export interface AutoCutDefaults {
+  mode: AutoCutMode;
+  params: AutoCutParams;
+  output: AutoCutOutput;
+  brief: Brief;
+  transcribe: boolean;
+  autoEdit: boolean;
+}
+
+export const getAutoCutDefaults = () =>
+  request<AutoCutDefaults>("/api/auto-cut/defaults");
 
 export const createAutoCut = (input: {
   /** Bỏ trống → server đặt theo tên file nguồn. */

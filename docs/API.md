@@ -170,6 +170,7 @@ Brief = {
   autoIllustrations: boolean,              // BẬT = AI tự tạo ảnh minh họa (Gemini) khi edit.
                                            //   TẮT (mặc định) = cấm hẳn: prompt edit nói rõ "CẤM sinh ảnh"
                                            //   và POST /api/illustrations trả 409 ILLUSTRATIONS_DISABLED
+  brollLibrary: boolean,                   // Kho TryOh: BẬT = được stage b-roll thật từ danh mục Drive
   illustrationModel: string|null,          // model Gemini tạo ảnh (null = mặc định)
   illustrationText: boolean,               // BẬT = Gemini được vẽ chữ tiếng Việt vào ảnh minh họa (mặc định TẮT — chữ do Remotion/HyperFrames đặt)
   illustrationPosition: "auto"|"top-left"|"top-center"|"top-right"|"middle-left"|"middle-center"|"middle-right"|"bottom-left"|"bottom-right"|"bottom-center",
@@ -348,6 +349,8 @@ AutoCutMeta = { id, name, status: "draft"|"planning"|"planned"|"cutting"|"done"|
   error?, createdAt, updatedAt }
 
 GET    /api/auto-cut/sources   -> { files: FileInfo[] }   // video trong imports/
+GET    /api/auto-cut/defaults[?mode=] -> { mode, params, output, brief, transcribe, autoEdit }
+                                // cấu hình lần trước người dùng chọn (data/prefs.json, scope "auto-cut")
 GET    /api/auto-cut           -> { sessions: AutoCutMeta[] }
 GET    /api/auto-cut/:id       -> { session }
 POST   /api/auto-cut           { name?, sourceRel, mode, params?, output?, brief?, transcribe?, autoEdit? } -> 201
@@ -357,6 +360,12 @@ POST   /api/auto-cut/:id/cut   -> 202 { job }   // job auto-cut step "cut" - nh�
                                                 //   hoặc "failed" khi đã có segments (cắt lại sau lỗi)
 DELETE /api/auto-cut/:id?force=true -> 204      // KHÔNG xóa các project con đã tạo
 ```
+
+**Nhớ cấu hình**: POST/PATCH thành công thì server nhớ `mode`, `params` (theo từng mode, bỏ
+`request`), `output`, `transcribe`, `autoEdit` và phần "gu edit" của `brief` (bỏ `sourceDescription`,
+`mainKey`, `relatedKeys`, `highlightKeywords`, `notes`, `styleId` - đó là của riêng từng video).
+POST thiếu field nào thì lấy giá trị đã nhớ. Giá trị nhớ đi qua đúng bộ parse của route; style đã
+nhớ bị xóa thì chỉ rơi `styleId` về null, file prefs hỏng thì về mặc định cứng.
 
 Upload nguồn dùng lại `POST /api/assets` với `scope=imports` (có sẵn thanh tiến độ + QR điện thoại).
 
@@ -392,6 +401,28 @@ Không có key hoặc lỗi -> rơi về tâm khung, không bao giờ làm hỏn
 báo 3840x2160 nhưng có `stream_side_data=rotation=-90`, khung giải mã thật là 2160x3840. Mọi phép
 tính tỉ lệ PHẢI hoán đổi width/height khi |rotation| là 90/270, nếu không video quay bằng điện thoại
 sẽ bị hiểu nhầm là video ngang.
+
+## Kho TryOh (b-roll thật) - apps/server/data/media-library/
+
+**Danh mục** footage/ảnh sự kiện trên Google Shared Drive "TryOh!E vent Media" (mỗi thư mục con
+một sự kiện → `event`). Backend KHÔNG đọc được Drive: danh mục lập từ connector Google Drive, clip
+tải theo nhu cầu qua Chrome rồi ghi nhận bằng `node scripts/media-library-register.mjs <driveId> <file>`
+(chuyển file vào `data/media-library/files/`, ghi `localPath` + `sha256` + thời lượng). Không có
+endpoint nhận đường dẫn file tùy ý - server có thể đang mở tunnel.
+
+```
+MediaItem = { id, title, mimeType, kind: "video"|"image"|"other", event, folderPath, viewUrl?,
+  tags: { shot, faces: "none"|"far"|"recognizable"|null, description, brands[], approved } | null,
+  localPath|null, sha256?, durationSec?, downloaded }   // downloaded = bản tải còn trên đĩa
+
+GET   /api/media-library?event=&kind=&q=&downloaded=1&approved=1 -> { source, listedAt, events, items }
+PATCH /api/media-library/:id { tags: {shot?, faces?, description?, brands?, approved?} } -> { item }
+POST  /api/media-library/:id/stage { projectId } -> { relPath, reused }
+      // chép vào video-projects/<id>/assets/broll/, trùng hash thì trả file cũ (reused: true)
+      // 409 BROLL_DISABLED      khi brief.brollLibrary = false (công tắc "Kho TryOh")
+      // 409 MEDIA_NOT_APPROVED  khi tags.faces = "recognizable" mà chưa approved
+      // 409 MEDIA_NOT_DOWNLOADED khi chưa tải / bản tải đã bị xóa
+```
 
 ## Text to video (biến bài viết/đoạn văn thành video) - text-to-video/<id>/
 

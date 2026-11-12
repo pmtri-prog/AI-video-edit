@@ -217,6 +217,27 @@ export function buildEditPrompt(input: {
         "chuyển động). Thiếu hình cho một ý thì thể hiện bằng typography/đồ họa, KHÔNG sinh ảnh.",
     );
   }
+  // Kho TryOh: in CẢ HAI chiều như mọi công tắc khác (xem ghi chú ảnh minh họa
+  // ngay trên). Server chặn thêm một lớp: stage trả 409 BROLL_DISABLED khi tắt.
+  if (brief.brollLibrary) {
+    lines.push(
+      "- Kho TryOh (b-roll thật): BẬT - phủ footage/ảnh sự kiện THẬT lên đoạn nói khi lời nói nhắc " +
+        "tới một sự kiện, brand, máy hay cảnh tại điểm. Tra danh mục: `GET /api/media-library?q=<từ khóa>` " +
+        "hoặc `?event=<tên sự kiện>` (thêm `&downloaded=1` để chỉ lấy clip đã có trên máy). Chỉ dùng mục " +
+        "đã tải (`downloaded: true`): `POST /api/media-library/<id>/stage {\"projectId\":\"" + id + "\"}` " +
+        "trả `relPath` trong assets/broll/ của project rồi mới tham chiếu (server tự bỏ qua file trùng). " +
+        "Ưu tiên mục có `tags.faces` none/far; mục lộ mặt chưa duyệt sẽ bị từ chối (409). Mỗi lần phủ " +
+        "2-5 giây, tổng b-roll không quá 40% thời lượng. Scene sheet trong ghi chú thắng mọi lựa chọn " +
+        "tự động. Clip cần mà CHƯA tải: KHÔNG tự tải (backend không có quyền Drive) - giữ talking head " +
+        "ở chỗ đó và liệt kê trong báo cáo `id` + `title` + câu nói cần phủ để người dùng tải bổ sung.",
+    );
+  } else {
+    lines.push(
+      "- Kho TryOh (b-roll thật): TẮT - KHÔNG gọi `/api/media-library/*/stage` (server trả 409 " +
+        "BROLL_DISABLED) và không chép footage từ `apps/server/data/media-library/`. Chỉ dùng asset " +
+        "đã có sẵn trong `assets/` của project.",
+    );
+  }
   if (brief.notes.trim()) lines.push(`- Ghi chú: ${brief.notes.trim()}`);
   if (extraNotes) lines.push(`- Ghi chú thêm cho lần edit này: ${extraNotes}`);
   lines.push("");

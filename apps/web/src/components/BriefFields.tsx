@@ -65,6 +65,7 @@ export const DEFAULT_BRIEF: Brief = {
   musicMode: "auto",
   notes: "",
   autoIllustrations: false,
+  brollLibrary: false,
   illustrationModel: null,
   illustrationText: false,
   illustrationPosition: "auto",
@@ -395,6 +396,13 @@ export function BriefFields({
             )}
           </div>
         )}
+        <SwitchField
+          id="brief-broll"
+          checked={value.brollLibrary}
+          onChange={(v) => set("brollLibrary", v)}
+          label={t("brief.broll-label")}
+          hint={t("brief.broll-hint")}
+        />
         <SwitchField
           id="brief-illustrations"
           checked={value.autoIllustrations}
