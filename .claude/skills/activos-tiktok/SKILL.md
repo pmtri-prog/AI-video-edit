@@ -75,7 +75,7 @@ A feature still in test gets a yellow pill `#fff100`, black JetBrains Mono text 
 Trí does not want an end card. The video ends on his last spoken line (the closing question) with captions, nothing appended after it - no logo frame, no slogan, no URL card. Do not add one even if the guideline md or an older note asks for it.
 
 ### 3.8 Forbidden visuals
-Gradients, glow, drop-shadow on text, glassmorphism or backdrop blur, grain, emoji, all-caps text (no `text-transform: uppercase`), white text on any pastel or yellow, red or green for right/wrong, stock or AI images, any logo of a client brand unless the brief says it is approved (the TikTok co-branded file in section 4.1 is pre-approved).
+Gradients, glow, drop-shadow on text, glassmorphism or backdrop blur, grain, emoji, all-caps text (no `text-transform: uppercase`), white text on any pastel or yellow, red or green for right/wrong, stock or AI images, any logo of a client brand unless the brief says it is approved (the TikTok co-branded file in section 4.1 is pre-approved). The TryOh! mascot "Ồ!" (`assets/brand/tryoh/05-mascot/`) is not used on this channel - Trí's decision, even though the brand guideline allows it on TikTok.
 
 ## 4. Footage rules
 - Source: the **TryOh library** - a catalog of Trí's Google Shared Drive "TryOh!E vent Media" (one subfolder per event; the folder name is the `event` tag). The backend cannot read Drive; clips are downloaded on demand through Trí's Chrome and registered with `node scripts/media-library-register.mjs <driveId> <file>`, which moves the file out of `~/Downloads` and records its sha256.
