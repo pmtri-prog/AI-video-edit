@@ -46,12 +46,12 @@ html,body{width:1080px;height:1920px;overflow:hidden;background:#f6f2ec;font-fam
 </style></head>
 <body>
 <!-- Reference cutaway for the filler-scenes skill. Standalone 7.4s; in a real video the
-     same markup goes inside a full-frame .filler container (data-layer="bg") and every tween
+     same markup goes inside a full-frame .filler container (data-qc="bg") and every tween
      time is shifted by the beat start. Word-synced times are in the comments below. -->
 <div id="root" data-composition-id="main" data-start="0" data-duration="7.4" data-width="1080" data-height="1920">
   <div id="bar"><i></i><i></i><i></i></div>
 
-  <div id="kiosk" data-layer="ui">
+  <div id="kiosk" data-qc="ui">
     <div class="top"><i style="background:#f43a1c"></i><i style="background:#cde4ff"></i><i style="background:#fee4a9"></i></div>
     <h3>Nhận quà<b>.</b></h3>
     <div class="row" id="r0"><label>Tên</label><div class="field"><div class="fill"></div><div class="dots">••••••</div><div class="ok"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f6f2ec" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div></div></div>
@@ -61,20 +61,20 @@ html,body{width:1080px;height:1920px;overflow:hidden;background:#f6f2ec;font-fam
     <div class="row" id="r4"><label>Email <svg class="lock" id="l4" viewBox="0 0 24 24" fill="none" stroke="#b3260f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></label><div class="field"><div class="fill"></div><div class="dots">•••••@•••</div><div class="ok"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f6f2ec" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div></div></div>
   </div>
 
-  <div id="timer" data-layer="ui">
+  <div id="timer" data-qc="ui">
     <svg viewBox="0 0 260 260"><circle cx="130" cy="130" r="112" fill="#cde4ff"/><circle cx="130" cy="130" r="112" fill="none" stroke="#efe6da" stroke-width="18"/><circle id="arc" cx="130" cy="130" r="112" fill="none" stroke="#f43a1c" stroke-width="18" stroke-linecap="round" stroke-dasharray="703.7" stroke-dashoffset="0"/></svg>
     <div id="num"><b id="n">5</b><span>giây</span></div>
   </div>
 
   <svg id="arrow" viewBox="0 0 200 120"><path id="ap" d="M10 10 C 90 10, 120 60, 150 100" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-dasharray="12 12" stroke-linecap="round"/><path id="ah" d="M134 96 L152 104 L156 84" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0"/></svg>
 
-  <div id="profile" data-layer="ui">
+  <div id="profile" data-qc="ui">
     <div class="av"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></div>
     <div class="ln"></div><div class="ln s"></div>
     <div id="pill">✓ Đã đồng ý</div>
   </div>
 
-  <div id="tag" data-layer="ui">5 giây · người chơi tự điền</div>
+  <div id="tag" data-qc="ui">5 giây · người chơi tự điền</div>
 </div>
 
 <script>

@@ -10,9 +10,10 @@
  *  - lọt khỏi vùng an toàn TikTok: trên 150px, dưới 400px, phải 140px (khung 1080x1920)
  *  - hai lớp đè lên nhau (vd thẻ chữ đè phụ đề, khung quay màn hình đè nhãn)
  *
- * Lớp nào được soát: phần tử có data-layer="ui". Lớp nền phủ kín khung (video,
- * quay màn hình, motion graphic toàn khung) gắn data-layer="bg" - nó cố ý tràn
- * vùng an toàn và nằm dưới phụ đề nên không soát. Composition chưa gắn data-layer
+ * Lớp nào được soát: phần tử có data-qc="ui". (Không dùng data-layer: HyperFrames đã bỏ
+ * thuộc tính đó và `hyperframes lint` báo lỗi deprecated_data_layer.) Lớp nền phủ kín khung (video,
+ * quay màn hình, motion graphic toàn khung) gắn data-qc="bg" - nó cố ý tràn
+ * vùng an toàn và nằm dưới phụ đề nên không soát. Composition chưa gắn data-qc
  * thì lùi về soát .cue và .card (có cảnh báo).
  *
  * Mã thoát: 0 đạt, 2 có lỗi bố cục, 1 lỗi chạy. Nhanh: ~1s cho 10s video.
@@ -58,12 +59,12 @@ try {
     const W = Number(root?.dataset.width) || 1080;
     const H = Number(root?.dataset.height) || 1920;
     const dur = Math.min(window.__qcTl.duration(), Number(root?.dataset.duration) || Infinity);
-    const tagged = document.querySelectorAll('[data-layer="ui"]').length > 0;
+    const tagged = document.querySelectorAll('[data-qc="ui"]').length > 0;
     const subScenes = document.querySelectorAll("[data-composition-src]").length;
     return { W, H, dur, tagged, subScenes };
   });
   if (setup.W !== 1080 || setup.H !== 1920) await page.setViewportSize({ width: setup.W, height: setup.H });
-  const sel = setup.tagged ? '[data-layer="ui"]' : ".cue, .card";
+  const sel = setup.tagged ? '[data-qc="ui"]' : ".cue, .card";
   // Vùng an toàn TikTok chỉ áp cho video dọc; video ngang chỉ soát tràn khung
   const vertical = setup.H > setup.W;
   const SAFE = vertical
@@ -125,7 +126,7 @@ try {
     console.log(JSON.stringify({ pass: list.length === 0, tagged: setup.tagged, subScenes: setup.subScenes, duration: setup.dur, issues: list }, null, 2));
   } else {
     console.log(`Soát bố cục ${path.basename(path.resolve(dir), ".html")}: ${setup.dur.toFixed(1)}s, mỗi ${step}s, lớp: ${sel}`);
-    if (!setup.tagged) console.log('  Cảnh báo: chưa gắn data-layer="ui" - chỉ soát .cue và .card');
+    if (!setup.tagged) console.log('  Cảnh báo: chưa gắn data-qc="ui" - chỉ soát .cue và .card');
     if (setup.subScenes) console.log(`  Cảnh báo: ${setup.subScenes} cảnh con (data-composition-src) không được soát - chỉ soát lớp trong index.html`);
     if (!list.length) console.log("ĐẠT: không có lỗi bố cục");
     else {

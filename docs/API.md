@@ -360,7 +360,7 @@ Danh sách trang được quay: `assets/screen-capture-sites.json` (`sites[].hos
 hoặc tên miền con, đọc lại mỗi request).
 
 Soát bố cục trước render (không qua API): `node scripts/layout-qc.mjs video-projects/<id>` - tua
-timeline GSAP mỗi 0,1s, báo phần tử `[data-layer="ui"]` lọt vùng an toàn TikTok (trên 150px,
+timeline GSAP mỗi 0,1s, báo phần tử `[data-qc="ui"]` lọt vùng an toàn TikTok (trên 150px,
 dưới 400px, phải 140px) hoặc đè nhau. Mã thoát 0 đạt / 2 có lỗi / 1 lỗi chạy; `--json` để đọc máy.
 
 ## Auto cut videos (tab riêng) - auto-cut/<id>/

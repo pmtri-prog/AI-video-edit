@@ -38,7 +38,7 @@ curl -s -X POST localhost:6869/api/projects/<id>/screen-capture \
 - Place it **full frame with a 20px white border**, below the captions:
 
 ```html
-<div id="sc1" class="filler" data-layer="bg" style="position:absolute;inset:0;z-index:5;background:#fff;opacity:0">
+<div id="sc1" class="filler" data-qc="bg" style="position:absolute;inset:0;z-index:5;background:#fff;opacity:0">
   <div style="position:absolute;inset:20px;border-radius:36px;overflow:hidden">
     <video data-start="5.2" data-duration="3.5" data-track-index="2" src="assets/screen/tryoh-su-kien.mp4"
            muted playsinline style="width:100%;height:100%;object-fit:cover"></video>
@@ -54,7 +54,7 @@ tl.to("#sc1",{opacity:1,duration:0.2},5.2).to("#sc1",{opacity:0,duration:0.2},8.
 Start from `references/mg-form-timer.html` (form being filled word by word + 5s countdown + consent card). Same building blocks for other patterns: flow A → B → C with dashed arrows, level ladder, two-column compare, ticking checklist, big-number card.
 
 - **Flat style**: solid shapes, rounded cards (radius 32-36px), dashed arrows, simple line icons. No gradients, glow, shadows, 3D, emoji. Colors and fonts come from the project's Style Design only.
-- **Layout**: one full-frame container `class="filler" data-layer="bg"` filled with the style's background color, `z-index` above the face video and **below the captions** (captions sit at `z-index:7`+ - keep them on top). Every card/label inside gets `data-layer="ui"`.
+- **Layout**: one full-frame container `class="filler" data-qc="bg"` filled with the style's background color, `z-index` above the face video and **below the captions** (captions sit at `z-index:7`+ - keep them on top). Every card/label inside gets `data-qc="ui"`.
 - **Sync to words**: each element appears on the word that names it (`tl.to(el, …, wordStart)`), not on a fixed rhythm. Enter 0.3-0.5s `power3.out`; container fades 0.2-0.25s in and out.
 - Keep the level bar and captions continuous - the cutaway sits between them, it does not replace them.
 
@@ -64,9 +64,9 @@ Start from `references/mg-form-timer.html` (form being filled word by word + 5s 
 node scripts/layout-qc.mjs video-projects/<id>
 ```
 
-- Seeks the GSAP timeline every 0.1s and checks every visible `[data-layer="ui"]` element: inside the TikTok safe zone (top 150px, bottom 400px, right 140px) and not overlapping another ui element. ~1.5s for a 100s video.
+- Seeks the GSAP timeline every 0.1s and checks every visible `[data-qc="ui"]` element: inside the TikTok safe zone (top 150px, bottom 400px, right 140px) and not overlapping another ui element. ~1.5s for a 100s video.
 - Exit 0 = pass, 2 = issues (printed with time range), 1 = could not run.
-- Tag your layers: overlay text/cards `data-layer="ui"`, full-frame media `data-layer="bg"`. Untagged compositions fall back to `.cue, .card` with a warning.
+- Tag your layers: overlay text/cards `data-qc="ui"`, full-frame media `data-qc="bg"`. Untagged compositions fall back to `.cue, .card` with a warning.
 - Fix every issue and re-run before rendering. Report the final QC line in the video report.
 - It checks the HyperFrames `index.html` only. Overlays rendered by Remotion (e.g. the TryOh! layer in `meta.json` → `tryoh`) and `data-composition-src` sub-scenes are not covered - for those, extract frames from the draft and check the 140px right margin by eye.
 
