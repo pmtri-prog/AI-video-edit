@@ -17,6 +17,10 @@ Guideline md (content rules) + TryOh brand pack (visuals) > Style Design `tryoh`
 
 Brief notes may hold a **scene sheet** (see section 6). When present, follow it beat by beat: on-screen card text, layer, level and source are the user's words - use them VERBATIM.
 
+### 1.1 Never cut Trí's content to hit a length (mandatory)
+The guideline's "40-60s" is a target for NEW scripts, not a reason to trim a recording. On an existing take, remove only silences, fillers, stutters and clearly repeated or misspoken sentences (the auto-cut job + dead-weight review). **Never drop the opening hook question, a whole idea, a level's explanation or the closing question.** If the result is still long, say so in the report and let Trí decide - do not cut it yourself.
+- **Symptom:** viewers say the video "starts in the middle" and makes no sense. **Cause:** an edit trimmed 115s to 53s and removed the 20s opening question so the video began with "cái câu trả lời…". **Fix:** compare `transcript.final.json` with `transcript.cut.json` before the draft - the first sentence must match and the kept word count should be ≥ 85% unless Trí approved the cuts.
+
 ## 2. Setup per project
 
 **Visual identity is TryOh! v1.0 (since 12/11/2026).** The story, wording and content rules of the guideline stay; colors and fonts come from the TryOh brand pack in `assets/brand/tryoh/` (`03-mau/mau-tryoh.txt`, `04-chu/font-tryoh.txt`). Nothing ActivOS-branded (Archivo, peach/mint, ActivOS logo) appears on screen, and there is no end card (3.7).
