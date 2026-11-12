@@ -1,6 +1,6 @@
 ---
 name: activos-tiktok
-description: Edit a Vietnamese vertical TikTok video (9:16) for Phạm Minh Trí's personal channel that sells ActivOS Events to agencies and FMCG/beauty brand managers. Talking head + real event footage, pastel layer cards (Wow / Consent / Engage), a 3-bar level indicator, BCG source tags and an ActivOS end card. Use when the brief selects skill `activos-tiktok` or Style Design `activos`, or when the user mentions ActivOS, TikTok Beauty Fest, TikTok Food Fest, Dược Hậu Giang, or the BCG maturity series.
+description: Edit a Vietnamese vertical TikTok video (9:16) for Phạm Minh Trí's personal channel that sells ActivOS Events to agencies and FMCG/beauty brand managers. Talking head + real event footage, pastel layer cards (Wow / Consent / Engage), a 3-bar level indicator, BCG source tags. Use when the brief selects skill `activos-tiktok` or Style Design `activos`, or when the user mentions ActivOS, TikTok Beauty Fest, TikTok Food Fest, Dược Hậu Giang, or the BCG maturity series.
 ---
 
 # ActivOS TikTok - Trí's channel
@@ -22,7 +22,6 @@ Brief notes may hold a **scene sheet** (see section 6). When present, follow it 
 ```bash
 mkdir -p assets/fonts assets/brand
 cp ../../assets/styles/files/activos/*.ttf assets/fonts/
-cp ../../assets/brand/activos/activos-ngang.svg ../../assets/brand/activos/activos-ngang-nen-toi.svg assets/brand/
 ```
 
 `@font-face` in EVERY composition file (sub-compositions render in isolation - never rely on `var()` or fonts declared in the master):
@@ -72,8 +71,8 @@ A feature still in test gets a yellow pill `#fff100`, black JetBrains Mono text 
 - Active word: underline 6px in the color of the current layer, not a color change, glow or scale.
 - Position: `bottom: 420px` (the guideline safe zone keeps all text at least 400px above the bottom edge - do NOT use the 372px from `noti-tiktok-vn`). Keep clear of the top 150px and the right 140px.
 
-### 3.7 End card (last 2.5s)
-Black full frame. `assets/brand/activos-ngang-nen-toi.svg` centered, width 640px. Below it "Make offline count." in Archivo 800 at 62%, 96px, white, then `activos.vn` in JetBrains Mono 36px, `#979797`. Fade in 0.4s. Insert the logo as `<img>` from the file - never redraw it.
+### 3.7 No end card
+Trí does not want an end card. The video ends on his last spoken line (the closing question) with captions, nothing appended after it - no logo frame, no slogan, no URL card. Do not add one even if the guideline md or an older note asks for it.
 
 ### 3.8 Forbidden visuals
 Gradients, glow, drop-shadow on text, glassmorphism or backdrop blur, grain, emoji, all-caps text (no `text-transform: uppercase`), white text on any pastel or yellow, red or green for right/wrong, stock or AI images, any logo of a client brand unless the brief says it is approved (the TikTok co-branded file in section 4.1 is pre-approved).
@@ -118,7 +117,6 @@ Trí's brief notes may contain lines like:
 ```
 [00:00-00:03] lop=wow cap=1 the_chu="5.000+ mẫu · 1 ngày" nhan="TikTok Beauty Fest" nguon=-
 [00:20-00:32] lop=consent cap=2 the_chu="Emerging" nguon="BCG × Google, 2024"
-[00:55-00:58] end
 ```
 
 - `lop`: wow → peach, consent → sky, engage → mint, none → lilac or no card.
@@ -130,7 +128,7 @@ Trí's brief notes may contain lines like:
 ## 7. Report checklist (in addition to `video-pipeline`)
 - [ ] Guideline md was read this session (say so in the report)
 - [ ] Fonts loaded from `assets/fonts/` (Archivo condensed visible on a snapshot)
-- [ ] No corner logo; end card uses the logo file
+- [ ] No corner logo and no end card
 - [ ] Every TikTok partner mention has proof on screen (section 4.1), listed with timestamp and source
 - [ ] Content QC table included
 - [ ] Any face/name/number blurred is listed with its timestamp

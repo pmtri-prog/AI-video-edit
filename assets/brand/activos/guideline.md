@@ -92,10 +92,9 @@ File font nằm sẵn trong `assets/styles/files/activos/`: `Archivo-VF.ttf` (bi
   - cấp 3 = mint
 - **Thẻ chữ theo lớp:** khối pastel bo góc 32px, chữ đen.
 - **Thẻ nguồn:** chữ mono nhỏ ở góc dưới, ví dụ `Nguồn: BCG × Google, 2024`. Ghi đúng năm của con số (2021 cho số hiệu quả, 2024 cho định nghĩa và xu hướng).
-- **End card (2–3 giây):** nền đen, logo ngang ActivOS bản nền tối, rồi `Make offline count.`, rồi `activos.vn` bằng chữ mono.
 
 ### Logo
-- **Logo chỉ xuất hiện ở end card.** Không đóng logo góc suốt video: góc trên dành cho 3 vạch màu. Style Design `activos` cố ý để trống logo để hệ thống không tự đóng logo góc.
+- **Không có end card, không đóng logo góc.** Góc trên dành cho 3 vạch màu. Style Design cố ý để trống logo để hệ thống không tự đóng logo góc.
 - Dùng file gốc trong `assets/brand/activos/`, chép vào `assets/` của project rồi mới dùng. Không gõ lại chữ ActivOS bằng font khác.
   - `activos-ngang.svg` cho nền sáng, `activos-ngang-nen-toi.svg` cho nền đen.
 - Không kéo méo, không đổi màu, không đổi thứ tự vạch, không thêm bóng, viền.
@@ -110,7 +109,7 @@ File font nằm sẵn trong `assets/styles/files/activos/`: `Archivo-VF.ttf` (bi
 | 3–25 | Wow · concept | Trải nghiệm là gì, vì sao người qua đường dừng lại |
 | 25–40 | Consent | Người chơi xác thực khoảng 10 giây, đồng ý rõ ràng. Quay cận tay, che số |
 | 40–55 | Engage | Nhãn chăm lại người đã đồng ý. Một con số có ngày và nơi |
-| 55–60 | Câu hỏi + end card | Một câu hỏi thật cho người trong nghề, rồi end card |
+| 55–60 | Câu hỏi | Một câu hỏi thật cho người trong nghề, video kết ở câu này (không end card) |
 
 **Một video = một ý, một con số.** Có hai ý thì cắt thành hai video.
 
@@ -174,4 +173,4 @@ File font nằm sẵn trong `assets/styles/files/activos/`: `Archivo-VF.ttf` (bi
 - [ ] Không có giá, chi phí, biên
 - [ ] Tên nhãn chỉ xuất hiện khi đã được đồng ý
 - [ ] Phụ đề cứng đầy đủ, nằm trong vùng an toàn
-- [ ] Kết bằng câu hỏi + end card "Make offline count. · activos.vn"
+- [ ] Kết bằng câu hỏi, không end card
