@@ -278,9 +278,11 @@ async function probeStreams(
     ["-show_entries", "stream=codec_type", "-of", "csv=p=0", fileAbs],
     isCanceled,
   );
+  // Footage quay dọc có side-data xoay (Display Matrix): ffprobe in dòng "video,"
+  // (thừa dấu phẩy) - lấy cột đầu, nếu không "video" không khớp và bản cắt mất hình.
   const kinds = out
     .split(/\r?\n/)
-    .map((l) => l.trim())
+    .map((l) => l.split(",")[0].trim())
     .filter(Boolean);
   return { hasVideo: kinds.includes("video"), hasAudio: kinds.includes("audio") };
 }

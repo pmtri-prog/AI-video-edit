@@ -68,6 +68,15 @@ export interface TrimRequest {
   level: TrimAggressiveness;
   /** Ứng viên mỡ thừa đã được người/AI DUYỆT - job không tự duyệt hộ */
   cutCandidates: Array<{ start: number; end: number }>;
+  /**
+   * Đoạn NGƯỜI DÙNG tự chọn trên timeline sóng âm (luồng duyệt từng bước).
+   * Cắt NGUYÊN VĂN, KHÔNG qua lưới trung điểm chữ: Whisper hay kéo mốc chữ phủ
+   * cả khoảng lặng phía sau, lưới đó chặn đúng những khoảng im người dùng muốn
+   * bỏ (đo thật: video 56s chỉ cắt được 0,4s). Người dùng đã nghe và tự quyết.
+   */
+  manualCuts: Array<{ start: number; end: number }>;
+  /** false = không cắt khoảng lặng máy đo, chỉ cắt đoạn đã chọn/duyệt */
+  autoSilence: boolean;
   createdAt: string;
 }
 
@@ -102,6 +111,8 @@ function takeTrimRequest(projectId: string, jobId: string): TrimRequest | null {
     sourceRel: typeof r.sourceRel === "string" ? r.sourceRel : "",
     level: (r.level ?? "default") as TrimAggressiveness,
     cutCandidates: Array.isArray(r.cutCandidates) ? r.cutCandidates : [],
+    manualCuts: Array.isArray(r.manualCuts) ? r.manualCuts : [],
+    autoSilence: r.autoSilence !== false,
     createdAt: typeof r.createdAt === "string" ? r.createdAt : nowIso(),
   };
 }
@@ -399,7 +410,19 @@ export interface AutoTrimReport {
    * CỘNG THÊM nhờ ứng viên đã duyệt (đã trừ chỗ chồng lấn với khoảng lặng, nên
    * hai số cộng lại đúng bằng tổng, không đếm hai lần).
    */
-  removed: { silenceSec: number; approvedSec: number; ranges: number };
+  removed: { silenceSec: number; approvedSec: number; ranges: number; manualSec?: number };
+  /** Đoạn người dùng tự chọn trên timeline (giây file nguồn) - để mở lại trang vẫn còn */
+  manualCuts?: Array<{ start: number; end: number }>;
+  /** false = lần cắt này tắt cắt khoảng lặng tự động */
+  autoSilence?: boolean;
+  /**
+   * Các đoạn GIỮ LẠI, tính theo giây của file NGUỒN - bản cắt là các đoạn này
+   * nối liền nhau. QC `clipped-words` cần đúng danh sách này để biết từng mối
+   * nối nằm ở đâu và soi xem có cắt vào giữa chữ không. Báo cáo cũ (trước khi
+   * có field này) không có - QC khi đó chỉ soi được mép scene, không soi được
+   * mối nối bên trong bản cắt.
+   */
+  keepRanges?: Array<[number, number]>;
   threshold: { db: number; noiseFloorDb: number; note: string };
   candidates: {
     approved: number;
@@ -413,6 +436,19 @@ export interface AutoTrimReport {
 
 function reportPathOf(projectId: string): string {
   return path.join(projectDirOf(projectId), ...REPORT_REL.split("/"));
+}
+
+/** Đọc báo cáo auto-trim - null khi chưa cắt lần nào hoặc file hỏng (trạng thái bình thường) */
+export function readAutoTrimReport(projectId: string): AutoTrimReport | null {
+  try {
+    const raw = JSON.parse(fs.readFileSync(reportPathOf(projectId), "utf8")) as unknown;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const r = raw as Partial<AutoTrimReport>;
+    if (typeof r.source !== "string") return null;
+    return raw as AutoTrimReport;
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -434,6 +470,8 @@ export async function runAutoTrim(ctx: JobCtx): Promise<void> {
       : brief.autoCutLevel);
   const sourceAbs = resolveTrimSource(projectId, req?.sourceRel ?? null);
   const approved = mergeCutRanges(req?.cutCandidates ?? []);
+  const manual = mergeCutRanges(req?.manualCuts ?? []);
+  const autoSilence = req?.autoSilence !== false;
 
   ctx.log(`[trim] Nguồn: ${toRepoRel(sourceAbs)}`);
   ctx.log(
@@ -468,7 +506,14 @@ export async function runAutoTrim(ctx: JobCtx): Promise<void> {
 
   // ---- 2. Gộp khoảng lặng + ứng viên đã duyệt -----------------------------
   ctx.progress(40, "Gộp khoảng cắt");
-  const silenceCuts = mergeCutRanges(analysis.silence.silences);
+  const silenceCuts = autoSilence ? mergeCutRanges(analysis.silence.silences) : [];
+  if (!autoSilence) ctx.log("[trim] TẮT cắt khoảng lặng tự động - chỉ cắt đoạn đã chọn/duyệt.");
+  if (manual.length > 0) {
+    ctx.log(
+      `[trim] Nhận ${manual.length} đoạn NGƯỜI DÙNG chọn trên timeline (${totalSec(manual).toFixed(2)}s) - ` +
+        "cắt nguyên văn, không qua lưới trung điểm chữ.",
+    );
+  }
   const guardedApproved = guardWordMidpoints(approved, words);
   if (guardedApproved.dropped.length > 0) {
     ctx.log(
@@ -479,9 +524,11 @@ export async function runAutoTrim(ctx: JobCtx): Promise<void> {
           .join(", "),
     );
   }
-  const allCuts = mergeCutRanges([...silenceCuts, ...guardedApproved.kept]);
+  const autoCuts = mergeCutRanges([...silenceCuts, ...guardedApproved.kept]);
+  const allCuts = mergeCutRanges([...autoCuts, ...manual]);
   const silenceSec = round3(totalSec(silenceCuts));
-  const approvedSec = round3(Math.max(0, totalSec(allCuts) - silenceSec));
+  const approvedSec = round3(Math.max(0, totalSec(autoCuts) - silenceSec));
+  const manualSec = round3(Math.max(0, totalSec(allCuts) - totalSec(autoCuts)));
   const beforeSec = analysis.silence.durationSec;
   const keepRanges = toKeepRanges(allCuts, beforeSec);
   ctx.log(
@@ -576,7 +623,11 @@ export async function runAutoTrim(ctx: JobCtx): Promise<void> {
       afterSec,
       removedSec: afterSec === null ? round3(totalSec(allCuts)) : round3(beforeSec - afterSec),
     },
-    removed: { silenceSec, approvedSec, ranges: allCuts.length },
+    removed: { silenceSec, approvedSec, ranges: allCuts.length, manualSec },
+    manualCuts: manual,
+    autoSilence,
+    // Không cắt gì thì không có mối nối nào - để trống cho QC khỏi soi nhầm
+    ...(cut ? { keepRanges } : {}),
     threshold: {
       db: analysis.silence.thresholdDb,
       noiseFloorDb: analysis.silence.noiseFloorDb,

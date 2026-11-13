@@ -45,8 +45,11 @@ import publishRouter from "./routes/publish.js";
 import qcRouter from "./routes/qc.js";
 import clipsRouter from "./routes/clips.js";
 import reviewRouter from "./routes/review.js";
+import timelineRouter from "./routes/timeline.js";
 import autoCutRouter from "./routes/autoCut.js";
 import autoTrimRouter from "./routes/autoTrim.js";
+import projectTranscribeRouter from "./routes/projectTranscribe.js";
+import stepsRouter from "./routes/steps.js";
 import textToVideoRouter from "./routes/textToVideo.js";
 import translateVideoRouter from "./routes/translateVideo.js";
 import ttsRouter from "./routes/tts.js";
@@ -209,7 +212,10 @@ app.use("/api/projects", publishRouter); // phụ đề .srt/.vtt + gói metadat
 app.use("/api/projects", qcRouter); // QC tự động trên bản draft
 app.use("/api/projects", clipsRouter); // cắt short + tái chế tỉ lệ khung
 app.use("/api/projects", reviewRouter); // ghi chú duyệt draft theo mốc thời gian
+app.use("/api/projects", timelineRouter); // timeline chỉ đọc (scene, lời nói, SFX, nhạc) theo giây video
 app.use("/api/projects", autoTrimRouter); // cắt khoảng lặng + mỡ thừa của một video project
+app.use("/api/projects", projectTranscribeRouter); // bóc lời video nguồn (luồng duyệt từng bước)
+app.use("/api/projects", stepsRouter); // luồng duyệt từng bước: dữ liệu có cấu trúc của từng bước
 app.use("/api/auto-cut", autoCutRouter);
 // Text to video: phiên nguồn (bài viết/đoạn văn) → tự sinh Videos Project
 app.use("/api/text-to-video", textToVideoRouter);

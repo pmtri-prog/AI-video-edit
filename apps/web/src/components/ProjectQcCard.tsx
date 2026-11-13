@@ -2,8 +2,9 @@
 
 /**
  * Card "QC tự động" trong trang chi tiết video project.
- * Backend đo bằng ffmpeg (âm lượng, frame đen, đứng hình, chữ lọt vùng bị UI
- * nền tảng che) và trả report ĐỒNG BỘ - một lượt đo có thể mất tới ~2 phút,
+ * Backend đo bằng ffmpeg (âm lượng, frame đen, đứng hình, giật hình, cụt chữ ở
+ * điểm cắt, chữ lọt vùng bị UI nền tảng che) và trả report ĐỒNG BỘ - một lượt
+ * đo có thể mất tới ~2 phút,
  * nên UI phải nói rõ đang đo để người dùng không tưởng trang bị treo.
  */
 

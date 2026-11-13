@@ -789,6 +789,51 @@ Chia cue phụ đề: mỗi segment 1 cue; segment > 7s hoặc > 84 ký tự th�
 Metadata do Claude soạn một lượt (không tool) theo transcript + tone của Style Design, ràng buộc
 độ dài title theo từng nền tảng. Chưa có transcript -> 404 `NO_TRANSCRIPT`.
 
+## Bóc lời video nguồn của một video project
+
+```
+POST /api/projects/:id/transcribe   { source? } -> 202 { job, source }
+```
+
+Job `transcribe` (đi qua render queue, `sceneId` = đường dẫn nguồn tính từ thư mục project) bóc
+lời bằng Whisper trên máy, `language="vi"`, ghi `assets/transcript.raw.json` theo hệ thời gian của
+file GỐC - đúng file auto-trim đọc làm hàng rào. `source` chọn file giống hệt auto-trim (bỏ trống:
+`assets/face.*` → video lớn nhất trong `assets/`, bỏ qua `*.cut.*`).
+Lỗi: 404 `PROJECT_NOT_FOUND` / `TRIM_SOURCE_NOT_FOUND`, 400 `PATH_OUTSIDE_PROJECT` / `INVALID_SOURCE`,
+409 `BUSY` khi project đang có job chạy/chờ. Dùng ở Bước 1 của luồng duyệt từng bước: bóc lời →
+`auto-trim/analyze` → người duyệt từng ứng viên → `auto-trim/apply`.
+
+## Luồng duyệt từng bước - Bước 2 "Minh họa"
+
+```
+GET  /api/projects/:id/steps/illustrate           -> IllustrateState
+PUT  /api/projects/:id/steps/illustrate           { inserts?, rules? } -> IllustrateState
+POST /api/projects/:id/steps/illustrate/suggest   -> IllustrateState   (AI đề xuất, đồng bộ ~15-90s)
+POST /api/projects/:id/steps/illustrate/draft     { force? } -> 202 { job }   (job assemble-draft)
+
+IllustrateState = {
+  base: { video, transcript, durationSec },   // video nền = bản cắt Bước 1 (assets/*.cut.mp4) nếu còn, không thì bản gốc
+  segments: [{ i, start, end, text }],        // câu nói, theo hệ thời gian của video nền
+  inserts: InsertMeta[], rules: { maxCoverPct, defaultTransition, defaultSfx },
+  files: [{ rel, name, kind, description }],  // video/ảnh trong assets/ dùng được (trừ video nền + video gốc)
+  sfx: [{ file, tags, description }],         // SFX hợp chuyển cảnh trong assets/sound-effects/
+  flow: "steps" | null
+}
+InsertMeta = { id, anchor: {segment,text}|null, kind: video|image|motion, start, end (giây),
+  display: full|top|pip, src (tính từ thư mục project)|null, mediaStart, transitionIn/Out: cut|fade|slide|zoom,
+  sfx: {file, volume}|null, credit, motion: {template: counter|chapter|list|cta, title, value, label, items}|null,
+  note, origin: ai|user }
+```
+
+- Dữ liệu nằm trong `meta.json` (`inserts`, `insertRules`). PUT chuẩn hóa: kẹp mốc trong thời lượng, chặn `src`
+  ngoài project, SFX phải có trong thư viện.
+- `suggest` giữ mọi minh họa `origin: "user"`, chỉ thay đề xuất AI cũ; đề xuất mới đè lên minh họa của người dùng bị bỏ.
+- `draft` ghi timeline TẤT ĐỊNH (không agent): `scenes = [{ id: "main", srcVideo: <video nền> }]`, `flow = "steps"`, SFX của
+  minh họa chép vào `assets/sfx/` và ghi vào `audio.sfx` với `owner: "insert"`. Project đang có timeline của luồng cũ
+  → 409 `OLD_FLOW_TIMELINE`; gửi lại với `force: true` thì xóa chữ/sfx/nhạc của luồng cũ (neo theo timeline cũ).
+- Minh họa video/ảnh chưa có file bị bỏ qua trong draft (có log), không làm hỏng cả bản.
+- Lắp ráp tự tạo bản làm việc `renders/proxy/<stem>.<w>x<h>@<fps>.mp4` cho footage lớn hơn khung xuất (4K điện thoại).
+
 ## Auto-trim: cắt khoảng lặng + mỡ thừa của MỘT video project
 
 Khác hẳn mục "Auto cut videos" ở trên (mục đó cắt một video dài thành nhiều video ngắn).
@@ -797,7 +842,8 @@ Quy trình đầy đủ ở skill `auto-cut`.
 
 ```
 POST /api/projects/:id/auto-trim/analyze  { source?, level? } -> 200 TrimAnalyzeResult
-POST /api/projects/:id/auto-trim/apply    { source?, level?, cutCandidates? } -> 202 { job, level, profile, source, approvedCandidates }
+POST /api/projects/:id/auto-trim/apply    { source?, level?, cutCandidates?, manualCuts?, autoSilence? } -> 202 { job, level, profile, source, approvedCandidates }
+GET  /api/projects/:id/auto-trim/waveform?source=  -> { source, durationSec, peaksPerSec: 50, peaks: number[0..1], words: [{ s, e, w }] }
 
 level  = "natural"|"default"|"tight"  - thiếu thì lấy brief.autoCutLevel
 source = đường dẫn video nguồn, tính từ thư mục project ("assets/face.mp4") hoặc từ repo root;
@@ -828,6 +874,12 @@ thật trên `demo1/assets/thanhtoan80.mov`: ffmpeg gọi 70,3s là "lặng", tr
 
 **Ngưỡng dB do server dò theo từng file**, không phải hằng số: cùng một video, -40dB ra 0 khoảng lặng
 còn -25dB ra 21. `thresholdNote` luôn nói rõ vì sao ngưỡng đó thắng.
+
+**Cắt tay trên timeline (`manualCuts`)**: các khoảng `{start, end}` (giây file nguồn) người dùng tự chọn trên
+timeline sóng âm - cắt NGUYÊN VĂN, KHÔNG qua lưới trung điểm chữ (Whisper hay kéo mốc chữ phủ cả khoảng lặng
+phía sau, lưới đó chặn đúng chỗ im người dùng muốn bỏ). `autoSilence: false` = không cắt khoảng lặng máy đo.
+Báo cáo lưu lại `manualCuts` + `autoSilence` + `removed.manualSec`. `waveform` giải mã âm thanh một lần (mono
+8kHz) rồi lưu đệm ở `renders/waveform/<stem>.json` theo mtime nguồn.
 
 **`apply` đi qua render queue** (luật CLAUDE.md: mọi render đều hiện trong queue) - job type
 `auto-trim`, `sceneId` mang mức mạnh tay. `cutCandidates` là các khoảng `{start, end}` mà người/AI
@@ -870,9 +922,40 @@ QcReport = { checkedAt, file, fileMtime, platform, status: "pass"|"warn"|"fail",
 File mặc định: `outputs/<id>-draft.mp4` -> file .mp4 mới nhất trong `renders/` -> `meta.output`.
 Kết quả ghi `video-projects/<id>/qc.json`. `stale: true` khi file đã đổi sau lần QC gần nhất.
 
-Các phép đo: `resolution` (so meta), `loudness` (loudnorm, mục tiêu -14 LUFS), `truepeak` (clipping),
-`blackframes` (bỏ qua fade đầu/cuối, `pix_th=0.03` để nền tối `#0A0E1A` không bị báo nhầm là đen),
-`freeze`, `tail-silence`, `dead-air`, `av-duration`, `duration`, và `safe-area`.
+Các phép đo: `resolution` (so meta), `footage-fps`, `loudness` (loudnorm, mục tiêu -14 LUFS),
+`truepeak` (clipping), `blackframes` (bỏ qua fade đầu/cuối, `pix_th=0.03` để nền tối `#0A0E1A` không
+bị báo nhầm là đen), `freeze`, `stutter`, `tail-silence`, `dead-air`, `clipped-words`, `av-duration`,
+`duration`, và `safe-area`.
+
+**`clipped-words`** (code: `apps/server/src/qcCuts.ts`) soát từng điểm cắt xem có rơi vào giữa chữ
+không. Hai nguồn điểm cắt: mối nối bên trong bản `.cut.mp4` của auto-trim (lấy từ `keepRanges` trong
+`assets/auto-trim-report.json`; báo cáo cũ không có field này thì phải chạy lại auto-trim) và mép
+`from`/`to` của scene footage có tiếng (bỏ qua scene `muted`, và chỗ hai scene liền nhau phát nối tiếp
+cùng một file - tách scene để zoom không phải nhát cắt). Đo trên FILE CHỨA NHÁT CẮT, không trên bản lắp
+ráp, nên không dính cái bẫy lệch mốc của `dead-air`. Mỗi điểm phải qua hai phép thử độc lập: transcript
+nói điểm cắt nằm sâu trong một chữ (>= 0.05s từ cả hai mép), VÀ âm lượng 40ms hai bên điểm cắt đều đang
+có tiếng. Phép thử thứ hai loại được lỗi kinh điển của whisper - kéo dài mốc chữ đứng trước khoảng nghỉ
+sang cả phần im lặng. `fail` chỉ khi: hai phép thử cùng xác nhận + lấn >= 0.1s vào chữ + biết chắc
+transcript là của đúng file đó (báo cáo auto-trim làm chứng) + với mối nối auto-trim thì bản `.cut.mp4`
+phải thật sự được dùng (scene `srcVideo` hoặc thẻ `<video>` trong composition). Thiếu một điều kiện thì
+tối đa `warn`. Chưa soát được: điểm cắt của footage nhúng trong composition HyperFrames (thẻ `<video>`
+với `data-media-start`...).
+
+**`footage-fps`** (code: `apps/server/src/qcMotion.ts`) đọc fps của mọi footage (scene `srcVideo` +
+thẻ `<video src>` trong `index.html`/`compositions/*.html`). fps footage chia fps project không ra số
+nguyên (24/25 -> 30, 50 -> 30, 30 -> 25) thì bộ lắp ráp phải lặp/bỏ frame không đều = chuyển động khựng
+nhịp; check gợi ý fps project khớp. Cũng bắt footage VFR rớt frame (`avg_frame_rate` lệch
+`r_frame_rate` > 2%). Tối đa `warn`.
+
+**`stutter`** (cùng file) đo YDIF (signalstats) từng frame của bản lắp ráp, thu nhỏ còn rộng 270px
+(~1.2s cho mỗi phút 1080x1920). Bắt frame lặp LẺ: YDIF <= 10% hàng xóm yếu nhất, trong khi HAI frame mỗi
+bên đều đang chuyển động (YDIF >= 0.25). Đòi hai frame mỗi bên để animation cố ý vẽ 2-3 frame một hình
+(stop-motion, giấy, người que) không bị báo nhầm. Chỉ báo vùng có >= 2 frame lặp: một frame lặp đơn lẻ
+thường là x264 tinh chỉnh dần chất lượng một ảnh tĩnh (đã gặp trên bản draft Remotion thật), mắt không
+thấy. Vùng lặp đều mỗi ~N frame = footage fps thấp hơn project. Tối đa `warn`.
+
+Check nào đo ra được mốc thì trả thêm `marks: [{ at, end?, label }]` (giây trên video đã đo) cho timeline
+của web vẽ thành chấm/đoạn: `blackframes`, `freeze`, `stutter`, `tail-silence`, `dead-air`, `clipped-words`.
 
 **`dead-air`** đo chỗ chết trên CẢ BÀI (khác `tail-silence` chỉ soi 4s cuối), dùng chính bộ đo của
 auto-trim và có đối chiếu transcript của project (`readProjectTranscript`, tức bản `final/cut` nếu có).

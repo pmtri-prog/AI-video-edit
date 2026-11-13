@@ -6,6 +6,7 @@ import {
 } from "./manifest";
 import { CaptionTrack } from "./components/CaptionTrack";
 import { HighlightTrack } from "./components/HighlightTrack";
+import { InsertTrack } from "./components/InsertTrack";
 import { MusicTrack } from "./components/MusicTrack";
 import { SceneClip } from "./components/SceneClip";
 import { SfxTrack } from "./components/SfxTrack";
@@ -25,8 +26,19 @@ import { TryohOverlay } from "./components/TryohOverlay";
  * crossfade do <Transition> xử lý bằng opacity.
  */
 export const Assemble: React.FC<Manifest> = (manifest) => {
-  const { scenes, audio, fps, captions, overlays, watermark, subtitles, subtitleStyle, tryoh } =
-    manifest;
+  const {
+    scenes,
+    audio,
+    fps,
+    captions,
+    overlays,
+    watermark,
+    subtitles,
+    subtitleStyle,
+    tryoh,
+    inserts,
+    insertTheme,
+  } = manifest;
 
   let from = 0;
   const sequences = scenes.map((scene, index) => {
@@ -49,6 +61,19 @@ export const Assemble: React.FC<Manifest> = (manifest) => {
   return (
     <AbsoluteFill style={{ backgroundColor: "#101113" }}>
       {sequences}
+
+      {/* Minh họa chèn (Bước 2) - phủ lên footage, dưới mọi lớp chữ */}
+      {inserts.length > 0 ? (
+        <InsertTrack
+          inserts={inserts}
+          theme={insertTheme}
+          split={
+            scenes.length === 1 && typeof scenes[0].srcVideo === "string" && scenes[0].srcVideo
+              ? { src: scenes[0].srcVideo, startFrame: Math.round((scenes[0].from ?? 0) * fps) }
+              : null
+          }
+        />
+      ) : null}
 
       {tryoh ? <TryohOverlay tryoh={tryoh} fps={fps} /> : null}
       {tryoh && tryoh.endCardFrames > 0 ? (

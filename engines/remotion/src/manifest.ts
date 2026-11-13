@@ -184,6 +184,50 @@ export const audioSchema = z.looseObject({
 });
 
 /**
+ * Lớp CHÈN minh họa (Bước 2 "Minh họa" của luồng duyệt từng bước): b-roll,
+ * ảnh hoặc motion graphic phủ LÊN footage người nói trong một khoảng thời gian.
+ *
+ * Khác scene: scene chiếm cả khung VÀ mang tiếng người nói, nên chèn b-roll
+ * bằng scene là mất tiếng. Insert chỉ phủ hình, tiếng footage chạy tiếp.
+ * Mốc tính bằng FRAME TUYỆT ĐỐI trên timeline (server đổi từ giây lúc stage).
+ */
+export const insertMotionSchema = z.looseObject({
+  /** counter = số to đếm lên; chapter = thẻ chương; list = danh sách; cta = kêu gọi */
+  template: z.enum(["counter", "chapter", "list", "cta"]),
+  title: z.string().default(""),
+  /** counter: số hiển thị, vd "26%", "12.000", "11,5 giờ" - phần số đầu tiên sẽ đếm lên */
+  value: z.string().default(""),
+  /** Dòng nhỏ dưới tiêu đề / dưới số */
+  label: z.string().default(""),
+  items: z.array(z.string()).default([]),
+});
+
+export const insertThemeSchema = z.looseObject({
+  primary: z.string().default("#ed3c47"),
+  accent: z.string().default("#ffd23f"),
+  background: z.string().default("#101113"),
+  text: z.string().default("#ffffff"),
+});
+
+export const insertSchema = z.looseObject({
+  id: z.string().min(1),
+  kind: z.enum(["video", "image", "motion"]),
+  fromFrame: z.number().int().min(0),
+  durationInFrames: z.number().int().positive(),
+  /** full = phủ kín; top = nửa trên (người nói còn ở nửa dưới); pip = khung nhỏ góc trên phải */
+  display: z.enum(["full", "top", "pip"]).default("full"),
+  /** Đường dẫn staging - bắt buộc với video/image */
+  src: z.string().nullable().default(null),
+  /** Giây bắt đầu bên trong file video */
+  mediaStart: z.number().min(0).default(0),
+  transitionIn: z.enum(["cut", "fade", "slide", "zoom"]).default("fade"),
+  transitionOut: z.enum(["cut", "fade", "slide", "zoom"]).default("fade"),
+  /** Dòng ghi nguồn nhỏ ở góc dưới của vùng chèn ("Ảnh: báo X") - rỗng = không */
+  credit: z.string().default(""),
+  motion: insertMotionSchema.optional(),
+});
+
+/**
  * Logo thương hiệu đóng góc suốt video.
  *
  * Server TỰ chèn từ logo của Style Design (xem jobs/assemble.ts) - KHÔNG phải
@@ -280,10 +324,16 @@ export const manifestSchema = z.looseObject({
   tryoh: tryohSchema.optional(),
   /** Logo thương hiệu đóng góc - null = Style Design không có logo */
   watermark: watermarkSchema.nullable().default(null),
+  /** Minh họa chèn lên footage (Bước 2) - rỗng = không có */
+  inserts: z.array(insertSchema).default([]),
+  /** Màu cho motion graphic của insert - server lấy từ Style Design */
+  insertTheme: insertThemeSchema.optional(),
   output: z.string().nullable().optional(),
 });
 
 export type Sfx = z.infer<typeof sfxSchema>;
+export type Insert = z.infer<typeof insertSchema>;
+export type InsertTheme = z.infer<typeof insertThemeSchema>;
 export type Music = z.infer<typeof musicSchema>;
 export type Zoom = z.infer<typeof zoomSchema>;
 export type CaptionWord = z.infer<typeof captionWordSchema>;

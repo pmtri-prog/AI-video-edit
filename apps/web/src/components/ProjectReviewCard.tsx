@@ -59,6 +59,10 @@ export function ProjectReviewCard({
   output,
   version,
   aiRunning = false,
+  hidePlayer = false,
+  onSeek,
+  refreshKey = 0,
+  onNotesChanged,
 }: {
   projectId: string;
   /** Đường dẫn video final trong meta (fallback khi chưa có draft). */
@@ -67,6 +71,18 @@ export function ProjectReviewCard({
   version?: string;
   /** Phiên AI của project đang chạy → không cho gửi ghi chú chồng lượt. */
   aiRunning?: boolean;
+  /**
+   * Trang đã có card Timeline (trình phát + ghim ghi chú) -> card này bỏ trình
+   * phát riêng, chỉ giữ danh sách ghi chú + gửi AI. Hai trình phát cùng một
+   * bản draft trên một trang là hai đầu phát lệch nhau.
+   */
+  hidePlayer?: boolean;
+  /** Bấm mốc của ghi chú -> nhờ trình phát ở card khác tua tới */
+  onSeek?: (atSec: number) => void;
+  /** Tăng lên khi ghi chú đổi ở card khác -> nạp lại */
+  refreshKey?: number;
+  /** Báo cho card khác biết ghi chú vừa đổi */
+  onNotesChanged?: () => void;
 }) {
   const { t, tf } = useT();
 
@@ -101,7 +117,7 @@ export function ProjectReviewCard({
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, refreshKey]);
 
   // ---- Ghim ghi chú mới --------------------------------------------------
   // currentTime của video theo dõi bằng state để nhãn nút "Ghim tại mm:ss"
@@ -133,6 +149,7 @@ export function ProjectReviewCard({
       setNotes((prev) => [...prev, note].sort((a, b) => a.atSec - b.atSec));
       setPinAt(null);
       setNewText("");
+      onNotesChanged?.();
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -142,6 +159,10 @@ export function ProjectReviewCard({
 
   /** Tua video tới mốc của ghi chú rồi phát tiếp - xem đúng chỗ đang nói tới. */
   function seekTo(atSec: number) {
+    if (onSeek) {
+      onSeek(atSec);
+      return;
+    }
     const v = videoRef.current;
     if (!v) return;
     v.currentTime = atSec;
@@ -165,6 +186,7 @@ export function ProjectReviewCard({
       const { note } = await updateReviewNote(projectId, noteId, patch);
       setNotes((prev) => prev.map((n) => (n.id === note.id ? note : n)));
       setEditingId(null);
+      onNotesChanged?.();
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -181,6 +203,7 @@ export function ProjectReviewCard({
     try {
       await deleteReviewNote(projectId, noteId);
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      onNotesChanged?.();
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -219,6 +242,7 @@ export function ProjectReviewCard({
       // để trỏ tới - chỉ ra hiệu xem panel AI của project.
       setSentInfo(tf("review.sent-ok", { n: sentCount }));
       load();
+      onNotesChanged?.();
     } catch (e) {
       if (e instanceof ApiError && e.code === "SESSION_BUSY") setSessionBusy(true);
       setSendError(e instanceof Error ? e.message : String(e));
@@ -241,7 +265,9 @@ export function ProjectReviewCard({
         </div>
       )}
 
-      {videoUrl ? (
+      {hidePlayer ? (
+        <p className="text-meta text-[var(--text-muted)]">{t("review.hidden-player")}</p>
+      ) : videoUrl ? (
         <div className="flex flex-col gap-2">
           <video
             ref={videoRef}
@@ -262,7 +288,7 @@ export function ProjectReviewCard({
       )}
 
       {/* Hàng thao tác: ghim ghi chú tại giây đang xem */}
-      {videoUrl && (
+      {videoUrl && !hidePlayer && (
         <div className="mt-3 flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" small onClick={openPin}>

@@ -29,6 +29,7 @@ import { runAutoTrim } from "./jobs/autoTrim.js";
 import { runTextToVideo } from "./jobs/textToVideo.js";
 import { runTranslateVideo } from "./jobs/translateVideo.js";
 import { runScreenCapture } from "./jobs/screenCapture.js";
+import { runTranscribeProject } from "./jobs/transcribeProject.js";
 
 /**
  * Hàng đợi render trong process - chạy SONG SONG tối đa `queueConcurrency` job
@@ -174,6 +175,8 @@ class RenderQueue {
         await runAutoTrim(ctx);
       } else if (fresh.type === "screen-capture") {
         await runScreenCapture(ctx);
+      } else if (fresh.type === "transcribe") {
+        await runTranscribeProject(ctx);
       } else {
         await runAssemble(ctx);
       }
