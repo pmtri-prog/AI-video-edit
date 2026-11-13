@@ -34,6 +34,7 @@ const TYPE_LABEL: Record<Job["type"], string> = {
   "auto-trim": "queue.type.auto-trim",
   "text-to-video": "queue.type.text-to-video",
   "translate-video": "queue.type.translate-video",
+  transcribe: "queue.type.transcribe",
 };
 
 /* Lọc theo trạng thái. "canceled" cố ý KHÔNG có chip riêng: job hủy là thứ

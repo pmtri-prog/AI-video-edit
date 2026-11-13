@@ -136,9 +136,14 @@ the total ratio (`default`: 0.5s / 3%).
 ## Step 6 - Use the cut version everywhere
 
 From here on, captions, key layout, SFX timing and zooms read `assets/transcript.cut.json` and the
-`.cut.mp4`. The QC check `dead-air` re-measures the assembled video against the transcript and FAILS
-when `brief.autoCut` is on and dead air is still over the profile - that is the backstop, not the
-plan.
+`.cut.mp4`. The QC check `dead-air` re-measures the assembled video against the transcript and WARNS
+when `brief.autoCut` is on and dead air is still over the profile (warn only - it measures on the
+assembled timeline, so it never blocks final) - that is the backstop, not the plan.
+
+The QC check `clipped-words` re-checks every join inside the `.cut.mp4` (from `keepRanges` in the
+report) and FAILS when a join lands inside a word with sound on both sides. That is the error the
+midpoint guard in Step 4 cannot see: a range that eats 40% of a neighbouring word does not cover its
+midpoint, so it passes the guard and the viewer hears a clipped word.
 
 Final report must include: the cut table from Step 3, seconds removed split into silence vs approved
 dead weight, and the verification verdict. Take the numbers from `auto-trim-report.json`.
@@ -153,11 +158,22 @@ dead weight, and the verification verdict. Take the numbers from `auto-trim-repo
   when picking a default).
 - Analyzing a `.cut.mp4` while the only transcript is the raw one -> the guard is aligned to the wrong
   timeline. Match the source file to the transcript that describes it.
+- Approving a dead-weight range whose edge sits INSIDE the neighbouring word (e.g. ends 0.15s into the
+  next word) -> the midpoint guard lets it through, QC `clipped-words` fails. Snap every approved range
+  to word boundaries: start at the previous word's `end`, stop at the next word's `start`.
+- QC `clipped-words` says "chạy lại auto-trim để soát" -> the report predates `keepRanges`, so the
+  joins inside the cut file cannot be checked. Re-run apply to get a report with the join list.
 - SFX/narration files with their own lead silence -> use `data-media-start` to trim inside HyperFrames
   (see "SFX loudness and lead silence" in the noti-tiktok-vn skill), do not re-encode an audio file
   just for 0.3s of leading silence.
+- **The transcript guard can block almost every real pause.** Whisper often stretches a word's `end` over the silence after it, so the guarded silence pass "sees speech" there and keeps it: on a 56s DJI Mic Mini talking head, `analyze` removed 0.45s while the waveform (-38 dBFS, >= 0.35s) showed 11 clear pauses = 3.8s. The step-by-step flow (`/projects/<id>/steps`, Bước 1) therefore has a waveform timeline where the user drags the ranges to cut; they go to `apply` as `manualCuts` and are cut verbatim, bypassing the word-midpoint net (the user listened and decided). Do not "fix" this by loosening the guard globally - that is what swallows quiet speech.
+- Portrait phone/DJI footage (4K .mov with a 90° rotation tag): `probeStreams` in `apps/server/src/autoTrim.ts` read ffprobe's `video,` line (trailing comma from the Display Matrix side-data) as "not video", so apply produced an AUDIO-ONLY `.cut.mp4` that still reported `verdict: pass`. Fixed in source (first CSV column only) but the server runs `dist/`, so rebuild + restart before trusting a cut. Always `ffprobe` the `.cut.mp4` for a video stream before using it.
+- Approved dead-weight ranges that ARE the filler word (e.g. "Ừ" 0-0.7s) get dropped by the midpoint guard ("LOẠI ... đè lên TRUNG ĐIỂM của chữ"), because the filler word's own midpoint is inside the range. The log says so; check `candidates.rejected` in the report before claiming a filler was cut.
 - Joining cut segments without a fade -> a click at every join. Fixed in `autoTrim.ts`; the rule is
   below, and it applies to any new code that cuts or concatenates audio.
+- Source whose audio `start_time` differs from the video's (phone .mov: audio 0.534s, video 0): the transcript is in AUDIO time (first audio sample = 0) and `atrim`+`asetpts` in the trim job drops that offset, so the `.cut.mp4` plays sound ~0.5s EARLY against the picture. Check with `ffprobe -show_entries stream=codec_type,start_time`. Fix: re-encode with `ffmpeg -ss <t> -t <len> -i src` (INPUT seek, no atrim) and shift transcript words by `audio_start - <t>`. Do not use `loudnorm` or `aresample=first_pts` together with output-side `-ss`: both moved speech by ~0.8s in testing.
+- The server runs `apps/server/dist/` (`npm run start`), not `tsx watch`: a fix in `src/` does nothing until `npm run build -w apps/server` and a restart. Symptom seen: cut file with audio only because the running dist lacked the `probeStreams` fix for rotated footage.
+- Midpoint guard also rejects candidates that ARE a single word (a lone "Ừ" / "cái cái"), so they never get cut through `cutCandidates`; trim such fillers at the head/tail of the clip at a word boundary instead.
 
 ## Audio: fade 30ms at every cut edge (hard rule)
 

@@ -58,6 +58,7 @@ const JOB_TYPE_LABEL: Record<Job["type"], string> = {
   "auto-trim": "dash.job.auto-trim",
   "text-to-video": "dash.job.text-to-video",
   "translate-video": "dash.job.translate-video",
+  transcribe: "dash.job.transcribe",
 };
 
 function healthProblems(

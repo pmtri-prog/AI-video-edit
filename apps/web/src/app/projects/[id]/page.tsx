@@ -41,6 +41,7 @@ import {
   FileQuestion,
   FileText,
   Image as ImageIcon,
+  ListChecks,
   Loader2,
   MessageSquare,
   Minus,
@@ -124,6 +125,7 @@ import { ProjectClipsCard } from "@/components/ProjectClipsCard";
 import { ProjectReviewCard } from "@/components/ProjectReviewCard";
 import { ProjectPublishCard } from "@/components/ProjectPublishCard";
 import { ProjectQcCard } from "@/components/ProjectQcCard";
+import { ProjectTimelineCard } from "@/components/ProjectTimelineCard";
 import { styleDisplayName, useStyles } from "@/components/StyleSelect";
 import {
   OutputBlock,
@@ -503,6 +505,12 @@ export default function ProjectDetailPage() {
   const { resyncTick } = useEvents();
 
   const [project, setProject] = useState<ProjectDetail | null>(null);
+  // Card Timeline và card Duyệt draft cùng nhìn một bản draft + một danh sách
+  // ghi chú: đếm phiên bản để card này đổi thì card kia nạp lại, và chuyển
+  // yêu cầu tua từ danh sách ghi chú sang trình phát của timeline.
+  const [qcRev, setQcRev] = useState(0);
+  const [notesRev, setNotesRev] = useState(0);
+  const [seekReq, setSeekReq] = useState<{ at: number; nonce: number } | null>(null);
   // Jobs của project - nguồn suy giai đoạn cho PipelineTimeline; seed từ
   // /api/jobs rồi cập nhật sống qua SSE (backend là nguồn sự thật)
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -1095,6 +1103,14 @@ export default function ProjectDetailPage() {
                 <ArrowLeft size={15} strokeWidth={2} />
                 {t("project.back")}
               </Button>
+              {/* Bản thử luồng duyệt từng bước - chưa i18n, gỡ/đổi khi chốt luồng */}
+              <Button
+                variant="secondary"
+                onClick={() => router.push(`/projects/${encodeURIComponent(projectId)}/steps`)}
+              >
+                <ListChecks size={15} strokeWidth={2} />
+                Duyệt từng bước
+              </Button>
             </span>
             <span className="flex items-center border-l border-[var(--border)] pl-2">
               <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
@@ -1210,6 +1226,22 @@ export default function ProjectDetailPage() {
         <ErrorBanner
           message={t("project.brief-save-error")}
           detail={briefSaveError}
+        />
+      )}
+
+      {/* Timeline rộng hết trang, nằm TRÊN ba cột: trục thời gian cần bề ngang,
+          nhét vào một cột 1/3 thì scene 1-2 giây chỉ còn vài pixel. */}
+      {project && (
+        <ProjectTimelineCard
+          projectId={projectId}
+          output={project.output}
+          version={project.updatedAt}
+          width={project.width}
+          height={project.height}
+          qcRevision={qcRev}
+          notesRevision={notesRev}
+          seekRequest={seekReq}
+          onNotesChanged={() => setNotesRev((n) => n + 1)}
         />
       )}
 
@@ -1451,6 +1483,10 @@ export default function ProjectDetailPage() {
             output={project?.output}
             version={project?.updatedAt}
             aiRunning={aiRunning}
+            hidePlayer
+            onSeek={(at) => setSeekReq({ at, nonce: Date.now() })}
+            refreshKey={notesRev}
+            onNotesChanged={() => setNotesRev((n) => n + 1)}
           />
           {/* Cắt short + tái chế tỉ lệ: cũng là một yêu cầu "làm cho tôi cái này" */}
           <ProjectClipsCard
@@ -1671,7 +1707,13 @@ export default function ProjectDetailPage() {
           </WorkspaceBlock>
 
           {/* QC đo bản draft/final hiện có - card tự đủ, đứng thẳng trong cột */}
-          <ProjectQcCard projectId={projectId} onChanged={load} />
+          <ProjectQcCard
+            projectId={projectId}
+            onChanged={() => {
+              load();
+              setQcRev((n) => n + 1);
+            }}
+          />
 
           {/* Báo cáo cắt tự động - tự ẩn khi project chưa chạy cắt lần nào */}
           <ProjectAutoTrimCard

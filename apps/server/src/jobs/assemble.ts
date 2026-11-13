@@ -13,7 +13,7 @@ import {
 } from "../meta.js";
 import { syncBrandLogo } from "../childProject.js";
 import { getStyle } from "../styles.js";
-import { ensureDir, remotionCli } from "../util.js";
+import { ensureDir, execFileCapture, remotionCli } from "../util.js";
 import { remotionSpeedArgs } from "../renderSettings.js";
 import { parseProgressLine, shortenStep } from "./progress.js";
 
@@ -101,6 +101,17 @@ export async function runAssemble(ctx: JobCtx): Promise<void> {
     ctx.log(`[stage] ${relFromProject} -> ${publicRel}`);
     return publicRel;
   };
+
+  // ---- Footage lớn hơn khung xuất → bản làm việc đúng độ phân giải ----
+  // OffthreadVideo trả từng frame cho Chrome dưới dạng BMP không nén (4K dọc ~33MB
+  // MỖI frame) → "Could not extract frame ... EPIPE" / "disk space is low" giữa
+  // render (skill remotion-assemble). Trước đây trông vào agent nhớ tự scale;
+  // luồng duyệt từng bước không có agent, nên server làm luôn cho mọi luồng.
+  for (const scene of meta.scenes ?? []) {
+    if (typeof scene.srcVideo !== "string" || !scene.srcVideo) continue;
+    const work = await workingCopy(projectDir, scene.srcVideo, meta.width, meta.height, meta.fps, ctx);
+    if (work !== scene.srcVideo) scene.srcVideo = work;
+  }
 
   // props = bản sao meta với đường dẫn asset đã resolve sang staging/
   const props = JSON.parse(JSON.stringify(meta)) as ProjectMeta;
@@ -265,6 +276,50 @@ export async function runAssemble(ctx: JobCtx): Promise<void> {
     }
   }
 
+  // ---- Minh họa chèn (Bước 2 luồng duyệt từng bước) ----
+  // meta lưu GIÂY + đường dẫn trong project; Remotion cần FRAME + đường dẫn staging.
+  // Insert thiếu file (video/ảnh chưa chọn) bị BỎ QUA có ghi log, không làm chết
+  // cả bản draft - người dùng đang duyệt dở thì vẫn xem được phần đã xong.
+  {
+    const fps = meta.fps;
+    const out: Record<string, unknown>[] = [];
+    for (const ins of meta.inserts ?? []) {
+      const fromFrame = Math.max(0, Math.round(ins.start * fps));
+      const durationInFrames = Math.round(ins.end * fps) - fromFrame;
+      if (durationInFrames < 2) continue;
+      if (ins.kind !== "motion" && !ins.src) {
+        ctx.log(`[insert] ${ins.id}: chưa có file - bỏ qua trong bản này`);
+        continue;
+      }
+      if (ins.kind !== "motion" && ins.src && !fs.existsSync(path.join(projectDir, ins.src))) {
+        ctx.log(`[insert] ${ins.id}: không thấy ${ins.src} - bỏ qua`);
+        continue;
+      }
+      out.push({
+        id: ins.id,
+        kind: ins.kind,
+        fromFrame,
+        durationInFrames,
+        display: ins.display,
+        src: ins.kind === "motion" || !ins.src ? null : stage(ins.src),
+        mediaStart: ins.mediaStart ?? 0,
+        transitionIn: ins.transitionIn,
+        transitionOut: ins.transitionOut,
+        credit: ins.credit ?? "",
+        ...(ins.kind === "motion" && ins.motion ? { motion: ins.motion } : {}),
+      });
+    }
+    (props as Record<string, unknown>).inserts = out;
+    const c = getStyle(brief.styleId).colors;
+    (props as Record<string, unknown>).insertTheme = {
+      primary: c.primary,
+      accent: c.accent,
+      background: c.background,
+      text: c.text,
+    };
+    if (out.length) ctx.log(`[insert] ${out.length} minh họa chèn lên footage`);
+  }
+
   // ---- 2. props.resolved.json -----------------------------------------
   const propsAbs = path.join(projectDir, "props.resolved.json");
   fs.writeFileSync(propsAbs, JSON.stringify(props, null, 2) + "\n", "utf8");
@@ -324,4 +379,74 @@ function nextVersion(projectId: string): number {
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Bản làm việc của footage: đúng khung xuất (cover + crop giữa), CFR theo fps,
+ * xoay dọc đã nướng vào điểm ảnh. Lưu ở renders/proxy/ (gitignore, nằm trong
+ * project nên stage được) và dùng lại khi nguồn chưa đổi. Footage đã vừa khung
+ * thì trả nguyên đường dẫn - không encode thừa.
+ *
+ * Chỉ đổi đường dẫn trong PROPS của lần dựng này (meta.json giữ nguyên nguồn):
+ * from/to vẫn đúng vì chỉ đổi cỡ khung, không đổi thời gian.
+ */
+async function workingCopy(
+  projectDir: string,
+  rel: string,
+  w: number,
+  h: number,
+  fps: number,
+  ctx: JobCtx,
+): Promise<string> {
+  const abs = path.join(projectDir, rel);
+  if (!fs.existsSync(abs)) return rel;
+  let sw = 0;
+  let sh = 0;
+  let rate = fps;
+  let rotation = 0;
+  try {
+    const out = await execFileCapture("ffprobe", [
+      "-v", "error", "-select_streams", "v:0",
+      "-show_entries", "stream=width,height,r_frame_rate:stream_side_data=rotation",
+      "-of", "json", abs,
+    ]);
+    const st = (JSON.parse(out) as { streams?: Array<Record<string, unknown>> }).streams?.[0] ?? {};
+    sw = Number(st.width) || 0;
+    sh = Number(st.height) || 0;
+    const [a, b] = String(st.r_frame_rate ?? "").split("/").map(Number);
+    if (a && b) rate = a / b;
+    const side = (st.side_data_list as Array<{ rotation?: number }> | undefined) ?? [];
+    rotation = Math.abs(Number(side.find((x) => x.rotation !== undefined)?.rotation ?? 0)) % 180;
+  } catch {
+    return rel; // không probe được thì để Remotion tự xử như trước
+  }
+  if (!sw || !sh) return rel;
+  if (rotation === 90) [sw, sh] = [sh, sw];
+  const fitsFrame = sw <= w * 1.05 && sh <= h * 1.05;
+  if (fitsFrame && Math.abs(rate - fps) < 0.01) return rel;
+
+  const stem = path.basename(rel).replace(/\.[^.]+$/, "");
+  const outRel = path.posix.join("renders", "proxy", `${stem}.${w}x${h}@${Math.round(fps)}.mp4`);
+  const outAbs = path.join(projectDir, outRel);
+  if (fs.existsSync(outAbs) && fs.statSync(outAbs).mtimeMs >= fs.statSync(abs).mtimeMs) {
+    ctx.log(`[proxy] dùng lại ${outRel}`);
+    return outRel;
+  }
+  ensureDir(path.dirname(outAbs));
+  ctx.progress(1, `Thu footage ${sw}x${sh} về ${w}x${h} cho Remotion`);
+  ctx.log(`[proxy] ${rel} ${sw}x${sh}@${rate.toFixed(2)} → ${outRel}`);
+  const tmp = `${outAbs}.tmp.mp4`;
+  await ctx.exec(
+    "ffmpeg",
+    [
+      "-hide_banner", "-nostats", "-y", "-i", abs,
+      "-vf", `fps=${fps},scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},setsar=1`,
+      "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
+      "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart",
+      tmp,
+    ],
+    projectDir,
+  );
+  fs.renameSync(tmp, outAbs);
+  return outRel;
 }

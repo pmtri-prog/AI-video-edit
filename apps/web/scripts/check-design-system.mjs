@@ -56,6 +56,9 @@ const ALLOW = new Map([
   ["src/components/PhoneConnectModal.tsx", ["BANNED_COLOR"]],
   // Khung xem trước phụ đề mô phỏng khung hình video tối.
   ["src/app/translate-video/[id]/page.tsx", ["BANNED_COLOR"]],
+  // MOCKUP luồng duyệt từng bước (tạm, xóa khi code thật): khung mô phỏng khung hình video tối.
+  ["src/app/mockup/step-flow/page.tsx", ["BANNED_COLOR"]],
+  ["src/app/mockup/step-flow/ui.tsx", ["BANNED_COLOR"]],
   // Xem trước chữ thương hiệu: cỡ chữ là DỮ LIỆU của style, không phải chrome.
   ["src/app/styles/[id]/page.tsx", ["BANNED_TEXT"]],
   // StatTile: con số lớn 28px theo spec, là bậc riêng đã ghi trong tài liệu.

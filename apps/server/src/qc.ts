@@ -3,6 +3,8 @@ import path from "node:path";
 import { verifyTrim, type TrimAggressiveness, type WordSpan } from "./autoTrim.js";
 import { repoRoot } from "./config.js";
 import { briefOf, projectDirOf, readMeta, type ProjectMeta } from "./meta.js";
+import { checkClippedWords } from "./qcCuts.js";
+import { checkFootageFps, checkStutter } from "./qcMotion.js";
 import { readProjectTranscript } from "./transcript.js";
 import { ensureDir, execFileCaptureAll, nowIso, toRepoRel } from "./util.js";
 
@@ -20,6 +22,19 @@ import { ensureDir, execFileCaptureAll, nowIso, toRepoRel } from "./util.js";
 
 export type QcStatus = "pass" | "warn" | "fail";
 
+/**
+ * Một chỗ lỗi cụ thể trên video đã đo - timeline của web vẽ thành chấm/đoạn
+ * đúng giây. `detail` vẫn là câu văn đầy đủ; `marks` chỉ là mốc để tua tới.
+ */
+export interface QcMark {
+  /** Giây trên video đã đo */
+  at: number;
+  /** Giây kết thúc khi lỗi là cả một đoạn */
+  end?: number;
+  /** Nhãn ngắn - hiện khi rê chuột/bấm vào mốc */
+  label: string;
+}
+
 export interface QcCheck {
   id: string;
   label: string;
@@ -32,6 +47,8 @@ export interface QcCheck {
    * safe-area dùng: máy không tự kết luận được nên trích ảnh cho người/AI soi.
    */
   frames?: string[];
+  /** Các chỗ lỗi theo giây - chỉ có ở check warn/fail đo ra được mốc */
+  marks?: QcMark[];
 }
 
 export interface QcReport {
@@ -512,6 +529,7 @@ async function checkDeadAir(input: {
         "đừng tự gõ ffmpeg silencedetect. (Cảnh báo, không chặn final: phép đo này " +
         "đối chiếu transcript của bản đã cắt lên video đã lắp ráp nên có thể lệch mốc.)",
       value: v.totalSilenceSec,
+      marks: v.residual.map((s) => ({ at: s.start, end: s.end, label: `Chỗ chết ${fmt(s.duration, 2)}s` })),
     };
   } catch (err) {
     return unmeasured("dead-air", label, errText(err));
@@ -585,6 +603,13 @@ export async function runQc(input: {
       detail: parts.join(" - "),
       value: h,
     });
+  }
+
+  // ---- 1b) footage-fps (fps footage có chia đều cho fps project không) -----
+  try {
+    checks.push(await checkFootageFps(input.projectId, meta));
+  } catch (err) {
+    checks.push(unmeasured("footage-fps", "Nhịp khung hình footage", errText(err)));
   }
 
   // ---- 2+3) loudness & truepeak (một lần chạy loudnorm) -------------------
@@ -703,6 +728,7 @@ export async function runQc(input: {
             (mid.length > 5 ? " ..." : "") +
             " - thường do hở frame giữa hai scene hoặc scene render thiếu",
           value: mid.length,
+          marks: mid.map((s) => ({ at: s.start, end: s.end, label: "Frame đen" })),
         });
       }
     }
@@ -757,11 +783,19 @@ export async function runQc(input: {
             (starts.length > 5 ? " ..." : "") +
             " - kiểm tra scene tĩnh hoặc footage bị treo",
           value: starts.length,
+          marks: starts.map((t) => ({ at: t, label: `Đứng hình >= ${FREEZE_MIN_DUR}s` })),
         });
       }
     }
   } catch (err) {
     checks.push(unmeasured("freeze", "Đứng hình", errText(err)));
+  }
+
+  // ---- 5b) stutter (frame lặp lẻ giữa chuyển động) -----------------------
+  try {
+    checks.push(await checkStutter(fileAbs, duration));
+  } catch (err) {
+    checks.push(unmeasured("stutter", "Giật hình (frame lặp lẻ)", errText(err)));
   }
 
   // ---- 6) tail-silence ----------------------------------------------------
@@ -813,6 +847,7 @@ export async function runQc(input: {
             status: "warn",
             detail: `Đuôi video im lặng ${fmt(tailLen, 2)}s (từ ${fmt(from + Math.max(0, lastStart ?? 0), 2)}s), nên cắt bớt`,
             value: tailLen,
+            marks: [{ at: from + Math.max(0, lastStart ?? 0), end: duration, label: "Đuôi im lặng" }],
           });
         } else {
           checks.push({
@@ -835,6 +870,16 @@ export async function runQc(input: {
   checks.push(
     await checkDeadAir({ projectId: input.projectId, fileAbs, hasAudio: probe.hasAudio }),
   );
+
+  // ---- 6c) clipped-words (điểm cắt rơi vào giữa chữ) ---------------------
+  // Đo trên FILE CHỨA NHÁT CẮT (footage nguồn, bản .cut.mp4) chứ không trên
+  // bản lắp ráp: transcript theo hệ thời gian của footage, đo trên bản lắp ráp
+  // là lệch mốc y như cái bẫy đã ghi ở dead-air.
+  try {
+    checks.push(await checkClippedWords(input.projectId, meta));
+  } catch (err) {
+    checks.push(unmeasured("clipped-words", "Cụt chữ ở điểm cắt", errText(err)));
+  }
 
   // ---- 7) av-duration -----------------------------------------------------
   if (!probe.ok) {

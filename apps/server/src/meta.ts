@@ -37,6 +37,59 @@ export interface SfxMeta {
   [key: string]: unknown;
 }
 
+// ---------------- Bước 2 "Minh họa" của luồng duyệt từng bước ----------------
+
+export const INSERT_KINDS = ["video", "image", "motion"] as const;
+export const INSERT_DISPLAYS = ["full", "top", "pip"] as const;
+export const INSERT_TRANSITIONS = ["cut", "fade", "slide", "zoom"] as const;
+export const MOTION_TEMPLATES = ["counter", "chapter", "list", "cta"] as const;
+export type InsertKind = (typeof INSERT_KINDS)[number];
+export type InsertDisplay = (typeof INSERT_DISPLAYS)[number];
+export type InsertTransition = (typeof INSERT_TRANSITIONS)[number];
+export type MotionTemplate = (typeof MOTION_TEMPLATES)[number];
+
+/**
+ * Một minh họa chèn LÊN footage người nói (không thay scene - tiếng vẫn chạy).
+ * Mốc tính bằng GIÂY trên timeline bản đã cắt; jobs/assemble.ts đổi sang frame
+ * và stage `src` lúc dựng. Người dùng sửa từng field trên web (Bước 2).
+ */
+export interface InsertMeta {
+  id: string;
+  /** Câu neo: chỉ số segment trong transcript bản cắt + chữ của câu lúc neo */
+  anchor: { segment: number; text: string } | null;
+  kind: InsertKind;
+  start: number;
+  end: number;
+  display: InsertDisplay;
+  /** Tính từ thư mục project ("assets/broll/x.mp4") - null = chưa có file */
+  src: string | null;
+  mediaStart: number;
+  transitionIn: InsertTransition;
+  transitionOut: InsertTransition;
+  /** Hiệu ứng âm thanh lúc minh họa hiện - file là TÊN trong assets/sound-effects/ */
+  sfx: { file: string; volume: number } | null;
+  credit: string;
+  motion: { template: MotionTemplate; title: string; value: string; label: string; items: string[] } | null;
+  /** Ghi chú của AI: vì sao chèn ở đây / cần file gì */
+  note: string;
+  /** "ai" = AI đề xuất, chưa ai sửa; "user" = người dùng đã sửa hoặc tự thêm */
+  origin: "ai" | "user";
+}
+
+export interface InsertRules {
+  /** % thời lượng tối đa minh họa được phủ kín người nói */
+  maxCoverPct: number;
+  defaultTransition: InsertTransition;
+  /** Tên SFX mặc định trong assets/sound-effects/ - null = không */
+  defaultSfx: string | null;
+}
+
+export const DEFAULT_INSERT_RULES: InsertRules = {
+  maxCoverPct: 40,
+  defaultTransition: "fade",
+  defaultSfx: null,
+};
+
 /** Nhạc nền với auto-ducking khi có thoại - file staging + speech ranges (giây) */
 export interface MusicMeta {
   file: string;
@@ -402,6 +455,11 @@ export interface ProjectMeta {
   output?: string | null;
   /** Tags quản lý project - hiện trong danh sách, lọc được */
   tags?: string[];
+  /** Minh họa chèn lên footage (Bước 2 của luồng duyệt từng bước) */
+  inserts?: InsertMeta[];
+  insertRules?: InsertRules;
+  /** "steps" = project dựng bằng luồng duyệt từng bước (timeline do server ghi, không do agent) */
+  flow?: "steps";
   createdAt?: string;
   updatedAt?: string;
   [key: string]: unknown;

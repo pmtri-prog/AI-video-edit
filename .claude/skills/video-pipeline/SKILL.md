@@ -137,6 +137,10 @@ The number one reason the pipeline burns an entire hour: **re-rendering a draft 
   `node -e "fetch(url, { method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({...}) })"`
   (or write the JSON to a file and use `curl --data-binary @file`).
 
+- **Quiet source audio fails QC `loudness` (> 4 dB off -14 LUFS)**: a phone/mic recording at -29 LUFS cannot be fixed by the Remotion `volume` (max 1). Two-pass `loudnorm` the source audio to `assets/voice.wav` (I=-14.5, TP=-1.5, linear), set `audio.voice` and mark the footage scene `muted: true`.
+- **`faster-whisper` fails with `open() got an unexpected keyword argument 'metadata_errors'`**: `av` 19 removed it; `pip install "av==16.1.0"` into `.runtime/venv`.
+- **Another agent session may be editing the same project at the same time** (extra `assemble-*` jobs you did not create, an `-v1.mp4` you did not render). Re-read `meta.json` before writing it and do not delete outputs you did not create.
+
 ## Checklist before reporting completion
 
 - [ ] If the brief enables autoCut: the cut was done per the `auto-cut` skill, a second silencedetect pass verified the cut version, and the report states the seconds/segments removed

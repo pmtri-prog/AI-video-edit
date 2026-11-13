@@ -336,7 +336,9 @@ export type JobType =
   /** Phiên dựng video từ bài viết - `projectId` = id phiên. */
   | "text-to-video"
   /** Phiên dịch video (bóc lời + đóng phụ đề) - `projectId` = id phiên. */
-  | "translate-video";
+  | "translate-video"
+  /** Bóc lời video nguồn của một video project - `sceneId` = đường dẫn nguồn. */
+  | "transcribe";
 
 export type JobStatus = "queued" | "running" | "done" | "failed" | "canceled";
 
@@ -1848,6 +1850,15 @@ export interface QcCheck {
    * UI che để người dùng tự soi.
    */
   frames?: string[];
+  /** Các chỗ lỗi theo giây video - timeline vẽ thành chấm/đoạn để tua tới. */
+  marks?: QcMark[];
+}
+
+/** Một chỗ lỗi QC trên video đã đo (giây). `end` có khi lỗi là cả một đoạn. */
+export interface QcMark {
+  at: number;
+  end?: number;
+  label: string;
 }
 
 export interface QcReport {
@@ -1869,6 +1880,30 @@ export interface QcReportResponse {
 
 export const getQcReport = (projectId: string) =>
   request<QcReportResponse>(`/api/projects/${encodeURIComponent(projectId)}/qc`);
+
+// ---------------------------------------------------------------- Timeline
+
+export type TimelineSceneKind = "hyperframes" | "footage" | "image" | "other";
+
+/**
+ * Timeline CHỈ ĐỌC - khớp ProjectTimeline của server (projectTimeline.ts).
+ * Mọi mốc đã quy đổi về giây trên video lắp ráp: server lo việc dời transcript
+ * của footage qua from/to của scene, web chỉ vẽ.
+ */
+export interface ProjectTimeline {
+  fps: number;
+  durationSec: number;
+  scenes: Array<{ id: string; kind: TimelineSceneKind; start: number; end: number; muted: boolean }>;
+  speech: Array<{ start: number; end: number; text: string }>;
+  /** "captions" | relPath transcript | null */
+  speechSource: string | null;
+  sfx: Array<{ at: number; label: string; file: string }>;
+  music: { label: string; file: string; start: number; end: number; ducks: Array<[number, number]> } | null;
+  unresolvedFrom: string | null;
+}
+
+export const getProjectTimeline = (projectId: string) =>
+  request<{ timeline: ProjectTimeline }>(`/api/projects/${encodeURIComponent(projectId)}/timeline`);
 
 /**
  * POST chạy QC - ĐỒNG BỘ, ffmpeg đo cả video nên có thể mất vài chục giây tới
@@ -2046,6 +2081,97 @@ export const analyzeAutoTrim = (
     input ?? {}
   );
 
+/**
+ * POST bóc lời video nguồn của project (Whisper trên máy) ra
+ * assets/transcript.raw.json - đẩy vào render queue (202), job type "transcribe".
+ * auto-trim analyze cần transcript này mới tìm được từ đệm / câu nói lại.
+ * 409 BUSY khi project đang có job chạy/chờ.
+ */
+export const transcribeProject = (projectId: string, source?: string) =>
+  post<{ job: Job; source: string }>(
+    `/api/projects/${encodeURIComponent(projectId)}/transcribe`,
+    source ? { source } : {}
+  );
+
+// ============ Luồng duyệt từng bước - Bước 2 "Minh họa" ============
+
+export type InsertKind = "video" | "image" | "motion";
+export type InsertDisplay = "full" | "top" | "pip";
+export type InsertTransition = "cut" | "fade" | "slide" | "zoom";
+export type MotionTemplate = "counter" | "chapter" | "list" | "cta";
+
+/** Một minh họa chèn lên footage - khớp InsertMeta của server (meta.ts). Mốc là giây trên bản đã cắt. */
+export interface InsertItem {
+  id: string;
+  anchor: { segment: number; text: string } | null;
+  kind: InsertKind;
+  start: number;
+  end: number;
+  display: InsertDisplay;
+  /** Tính từ thư mục project */
+  src: string | null;
+  mediaStart: number;
+  transitionIn: InsertTransition;
+  transitionOut: InsertTransition;
+  sfx: { file: string; volume: number } | null;
+  credit: string;
+  motion: { template: MotionTemplate; title: string; value: string; label: string; items: string[] } | null;
+  note: string;
+  origin: "ai" | "user";
+}
+
+export interface InsertRules {
+  maxCoverPct: number;
+  defaultTransition: InsertTransition;
+  defaultSfx: string | null;
+}
+
+export interface IllustrateState {
+  /** video nền (tính từ thư mục project) = bản đã cắt ở Bước 1, không có thì bản gốc */
+  base: { video: string; transcript: string | null; durationSec: number };
+  segments: Array<{ i: number; start: number; end: number; text: string }>;
+  inserts: InsertItem[];
+  rules: InsertRules;
+  /** video/ảnh trong project dùng được làm minh họa - rel tính từ thư mục project */
+  files: Array<{ rel: string; name: string; kind: "video" | "image"; description: string }>;
+  sfx: Array<{ file: string; tags: string[]; description: string }>;
+  flow: "steps" | null;
+}
+
+const stepsPath = (id: string) => `/api/projects/${encodeURIComponent(id)}/steps/illustrate`;
+
+export const getIllustrate = (id: string) => request<IllustrateState>(stepsPath(id));
+
+/** Lưu danh sách minh họa + quy tắc. Server chuẩn hóa (kẹp mốc, chặn đường dẫn ngoài project). */
+export const saveIllustrate = (id: string, body: { inserts?: InsertItem[]; rules?: InsertRules }) =>
+  jsonBody<IllustrateState>(stepsPath(id), "PUT", body);
+
+/** AI đề xuất lại - giữ mọi minh họa người dùng đã sửa (origin "user"). Đồng bộ, ~30-90s. */
+export const suggestIllustrate = (id: string) => post<IllustrateState>(`${stepsPath(id)}/suggest`);
+
+/**
+ * Dựng draft của Bước 2 (video nền + minh họa + SFX) - 202, job assemble-draft.
+ * 409 OLD_FLOW_TIMELINE khi project đang có timeline của luồng cũ: gửi lại với force.
+ */
+export const draftIllustrate = (id: string, force = false) =>
+  post<{ job: Job }>(`${stepsPath(id)}/draft`, force ? { force: true } : {});
+
+/** Sóng âm + chữ của video nguồn cho timeline cắt tay (Bước 1). peaks: 0..1, `peaksPerSec` điểm mỗi giây. */
+export interface TrimWaveform {
+  source: string;
+  durationSec: number;
+  peaksPerSec: number;
+  peaks: number[];
+  words: Array<{ s: number; e: number; w: string }>;
+}
+
+export const getTrimWaveform = (projectId: string, source?: string) =>
+  request<TrimWaveform>(
+    `/api/projects/${encodeURIComponent(projectId)}/auto-trim/waveform${
+      source ? `?source=${encodeURIComponent(source)}` : ""
+    }`
+  );
+
 /** Kết quả 202 của POST /api/projects/:id/auto-trim/apply. */
 export interface AutoTrimApplyResult {
   job: Job;
@@ -2067,6 +2193,10 @@ export const applyAutoTrim = (
     source?: string;
     level?: TrimAggressiveness;
     cutCandidates?: Array<{ start: number; end: number }>;
+    /** Đoạn người dùng tự chọn trên timeline - cắt nguyên văn, không qua lưới trung điểm chữ */
+    manualCuts?: Array<{ start: number; end: number }>;
+    /** false = không cắt khoảng lặng máy đo */
+    autoSilence?: boolean;
   }
 ) =>
   post<AutoTrimApplyResult>(
@@ -2091,7 +2221,12 @@ export interface AutoTrimReport {
    * THÊM nhờ ứng viên đã duyệt (đã trừ chỗ chồng lấn nên hai số cộng lại đúng
    * bằng tổng, không đếm hai lần).
    */
-  removed: { silenceSec: number; approvedSec: number; ranges: number };
+  removed: { silenceSec: number; approvedSec: number; ranges: number; manualSec?: number };
+  /** Đoạn người dùng tự chọn trên timeline (giây file nguồn) - báo cáo cũ không có */
+  manualCuts?: Array<{ start: number; end: number }>;
+  autoSilence?: boolean;
+  /** Các đoạn giữ lại theo giây file nguồn - QC `clipped-words` soát mối nối từ đây. Báo cáo cũ không có. */
+  keepRanges?: Array<[number, number]>;
   threshold: { db: number; noiseFloorDb: number; note: string };
   candidates: {
     approved: number;

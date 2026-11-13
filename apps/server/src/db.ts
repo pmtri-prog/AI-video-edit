@@ -176,7 +176,13 @@ export type JobType =
    * Quay màn hình một trang web (Playwright) thành clip 9:16 làm cảnh trám của
    * một video project. Chỉ tạo qua POST /api/projects/:id/screen-capture.
    */
-  | "screen-capture";
+  | "screen-capture"
+  /**
+   * Bóc lời một video nguồn của video project ra assets/transcript.raw.json
+   * (Whisper trên máy). sceneId mang đường dẫn nguồn tính từ thư mục project.
+   * Chỉ tạo qua POST /api/projects/:id/transcribe.
+   */
+  | "transcribe";
 export type JobStatus = "queued" | "running" | "done" | "failed" | "canceled";
 
 /**

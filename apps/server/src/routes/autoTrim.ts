@@ -12,6 +12,7 @@ import {
 import { AUTO_CUT_LEVELS, briefOf, projectDirOf, projectExists, readMeta } from "../meta.js";
 import { queue } from "../queue.js";
 import { HttpError, nowIso, toRepoRel } from "../util.js";
+import { sourceWords, waveformOf } from "../waveform.js";
 
 /**
  * Cắt khoảng lặng + mỡ thừa của một video project.
@@ -50,6 +51,24 @@ function sourceOf(body: Record<string, unknown>): string | null {
   return body.source.trim() || null;
 }
 
+/** Mảng { start, end } (giây) tùy chọn trong body - sai kiểu là 400 chỉ đích danh field */
+function rangesOf(body: Record<string, unknown>, field: string): Array<{ start: number; end: number }> {
+  const v = body[field];
+  if (v === undefined || v === null) return [];
+  if (!Array.isArray(v)) {
+    throw new HttpError(400, "INVALID_RANGES", `${field} phải là mảng { start, end } (giây)`);
+  }
+  return v.map((raw) => {
+    const c = (raw ?? {}) as Record<string, unknown>;
+    const start = typeof c.start === "number" ? c.start : NaN;
+    const end = typeof c.end === "number" ? c.end : NaN;
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start) {
+      throw new HttpError(400, "INVALID_RANGES", `${field}: khoảng không hợp lệ ${JSON.stringify(raw)}`);
+    }
+    return { start, end };
+  });
+}
+
 function assertProject(id: string): void {
   if (!projectExists(id)) {
     throw new HttpError(404, "PROJECT_NOT_FOUND", `Không tìm thấy project "${id}"`);
@@ -81,6 +100,17 @@ router.post("/:id/auto-trim/analyze", async (req, res) => {
     ),
   ]);
   res.json(result);
+});
+
+// GET /api/projects/:id/auto-trim/waveform?source=  (timeline cắt tay)
+//   -> 200 { source, durationSec, peaksPerSec, peaks: number[0..1], words: [{ s, e, w }] }
+router.get("/:id/auto-trim/waveform", async (req, res) => {
+  const id = req.params.id;
+  assertProject(id);
+  const src = typeof req.query.source === "string" && req.query.source.trim() ? req.query.source.trim() : null;
+  const sourceAbs = resolveTrimSource(id, src);
+  const wf = await waveformOf(id, sourceAbs);
+  res.json({ source: toRepoRel(sourceAbs), ...wf, words: sourceWords(id) });
 });
 
 // POST /api/projects/:id/auto-trim/apply - { source?, level?, cutCandidates? }
@@ -148,6 +178,8 @@ router.post("/:id/auto-trim/apply", (req, res) => {
     sourceRel,
     level,
     cutCandidates,
+    manualCuts: rangesOf(body, "manualCuts"),
+    autoSilence: body.autoSilence !== false,
     createdAt: nowIso(),
   });
 
