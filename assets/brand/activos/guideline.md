@@ -117,6 +117,12 @@ File font nằm sẵn trong `assets/styles/files/activos/`: `Archivo-VF.ttf` (bi
 
 **Caption khi đăng:** một câu tóm tắt đúng câu hook, rồi bộ hashtag cố định `#tryoh #learnontiktok #sukien #sampling`, thêm tối đa 2 tag theo nội dung. (Trí duyệt 14/11/2026)
 
+**Lịch đăng (đang thử từ 14/11/2026):** tối đa 2 video một ngày, cách nhau ít nhất 6–8 tiếng để hai video không giành view của nhau. Video thứ hai đăng chiều tối, thử khung 19:00–21:00 (khung kênh Khánh LifeTech hay đăng). Chờ video trước chạy ổn rồi mới đăng video sau.
+
+### 6C. Nguồn gốc các luật ở mục 6–6B
+
+Các luật về hook, độ dài, chia phần, caption, dạng video và lịch đăng là kết quả so kênh với Khánh LifeTech (@khanh.lifetech, 46 video, đọc phụ đề tự động) ngày 14/11/2026, Trí duyệt từng mục. Các điều Trí **không** chọn, đừng tự áp: gom playlist theo series, chèn cảnh demo bằng tay, AI tự gợi ý tình huống đời thường trong thân bài, mở video bằng mặt người nói. Bảng 7 công thức hook nằm ở skill `activos-tiktok` mục 6.1.
+
 ### 6B. Dạng video được dùng thêm (Trí duyệt 14/11/2026)
 
 Học từ kênh Khánh LifeTech: các bài hỏi đáp, collab và bám thời sự của kênh đó được nhiều view gấp nhiều lần bài thường.
