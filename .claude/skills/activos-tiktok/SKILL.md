@@ -18,7 +18,7 @@ Guideline md (content rules) + TryOh brand pack (visuals) > Style Design `tryoh`
 Brief notes may hold a **scene sheet** (see section 6). When present, follow it beat by beat: on-screen card text, layer, level and source are the user's words - use them VERBATIM.
 
 ### 1.1 Never cut Trí's content to hit a length (mandatory)
-The guideline's "40-60s" is a target for NEW scripts, not a reason to trim a recording. On an existing take, remove only silences, fillers, stutters and clearly repeated or misspoken sentences (the auto-cut job + dead-weight review). **Never drop the opening hook question, a whole idea, a level's explanation or the closing question.** If the result is still long, say so in the report and let Trí decide - do not cut it yourself.
+The guideline's "40-60s" is a target for NEW scripts, not a reason to trim a recording. A story video (incident, backstage, Q&A, collab) may run to about 2 minutes (guideline section 5, approved 14/11/2026). On an existing take, remove only silences, fillers, stutters and clearly repeated or misspoken sentences (the auto-cut job + dead-weight review). **Never drop the opening hook question, a whole idea, a level's explanation or the closing question.** If the result is still long, say so in the report and let Trí decide - do not cut it yourself.
 - **Symptom:** viewers say the video "starts in the middle" and makes no sense. **Cause:** an edit trimmed 115s to 53s and removed the 20s opening question so the video began with "cái câu trả lời…". **Fix:** compare `transcript.final.json` with `transcript.cut.json` before the draft - the first sentence must match and the kept word count should be ≥ 85% unless Trí approved the cuts.
 
 ## 2. Setup per project
@@ -97,7 +97,8 @@ Trí chose this layout on 12/11/2026 for the whole channel. Style Design `tryoh`
 
 - `sourceRel` = the clean cut clip (no captions or cards burned in), never the final render.
 - `frameAt` = a moment where Trí looks into the lens with eyes open - extract 3-4 candidates and look before choosing.
-- `title` 3-7 words, from what he actually says; `tags` = 3 short keywords (≤ 14 chars each), none from the banned list.
+- `title` 3-7 words, from what he actually says. **Prefer a question** (approved 14/11/2026, learned from Khánh LifeTech whose covers are all questions): "Tại sao máy chụp ảnh cạnh máy phát mẫu?" A question title ends with "?" and has no red period; only a statement title gets the red period.
+- `tags` = 3 short keywords (≤ 14 chars each), none from the banned list.
 - The pills sit on the chest above the card and must never cover the face. Check the PNG; if the face is low in the frame, pick another `frameAt`.
 
 ## 4. Footage rules
@@ -151,6 +152,27 @@ Trí's brief notes may contain lines like:
 - Times are approximate: snap each beat to the nearest word in the transcript where the idea starts.
 - If there is no scene sheet, derive beats from the transcript and the guideline's video formula (section 6 of the guideline), and present the beat table for approval before building.
 
+## 6.1 Hook formulas (approved by Trí 14/11/2026)
+
+Benchmarked on @khanh.lifetech (TikTok, 46 videos read with their auto-captions). His million-view videos open with **something that sounds wrong or a question with no answer yet**. His flops open with the solution's name ("biến bất kỳ điều hòa nào thành…") or a diary line ("ngày đầu tiên của mình ở…"). On this channel the flop version is "ActivOS giúp nhãn…". Designed thumbnails did not move his views (his designed-cover series got 5-7K while plain-frame covers got millions), so the hook decides reach and the cover only polishes the profile grid.
+
+The hook line is spoken as voice-over on the 0-3s shot (guideline section 6: never open on Trí's face). Use one of these seven. The Vietnamese lines are the approved wording and can be adapted to the transcript:
+
+| # | Formula | Line for Trí | 0-3s shot |
+|---|---|---|---|
+| 1 | Made hard on purpose | "Trong máy phát mẫu của mình có một bước mà mình cố tình làm cho chậm đi 10 giây." → the ~10s consent step | hand close-up on the verify screen, numbers blurred |
+| 2 | "Why" an odd detail | "Ở TikTok Food Fest, tại sao mình lại đặt máy chụp ảnh ngay cạnh máy phát mẫu?" | wide shot of the two machines side by side |
+| 3 | Big number, then a hard question | "Hơn 5.000 mẫu trong một ngày ở TikTok Beauty Fest. Nhưng câu hỏi khó nhất lại đến vào ngày hôm sau." | number card `5.000+` · `TikTok Beauty Fest · 1 ngày` over crowd footage |
+| 4 | "For those who think they know" | "Ai làm sự kiện lâu chắc nghĩ phát mẫu thì có gì đâu mà phải nghĩ. Mình cũng từng nghĩ thế." | setup time-lapse |
+| 5 | A personal annoyance | "Mình không thích cái cảnh dọn booth xong là mọi thứ biến mất theo." → Engage | pack-down shot |
+| 6 | Reply to a comment | "Trả lời anh [tên]: máy chụp ảnh ở sự kiện thì liên quan gì đến dữ liệu cho nhãn?" | TikTok comment sticker over machine footage. **Only with a real comment.** |
+| 7 | Backstage or incident | "[Giờ], [ngày] ở [nơi], máy của mình [sự cố thật]. Đây là cách mình xử lý." | incident shot. **Fill only with a real incident from Trí. Never invent one.** |
+
+Rules:
+- The paradox is always about Trí's own machine or experience, never about how brands or other agencies do it wrong (guideline 7). Rejected example: "Phát 10.000 mẫu mà brand không biết ai đã nhận?" It criticizes brands and uses an unapproved number.
+- Numbers only from guideline section 9. Never money: Khánh's income/price hooks are not portable.
+- If a transcript's first sentence matches none of the seven and reads like a solution name or a diary line, flag it in the beat table and propose the closest formula. Do not rewrite Trí's spoken words yourself. A new hook means a re-record, and that is his call.
+
 ## 7. Report checklist (in addition to `video-pipeline`)
 - [ ] Guideline md was read this session (say so in the report)
 - [ ] Fonts loaded from `assets/fonts/` (Space Grotesk visible on a snapshot)
@@ -158,4 +180,6 @@ Trí's brief notes may contain lines like:
 - [ ] Every TikTok partner mention has proof on screen (section 4.1), listed with timestamp and source
 - [ ] Thumbnail made with the "Nhãn dán" layout (3.9), face clear of pills
 - [ ] Content QC table included
+- [ ] Hook checked against section 6.1 (which formula, or flagged as weak)
+- [ ] Posting caption suggested: one line restating the hook + the fixed hashtag set from guideline section 6 (`#tryoh #learnontiktok #sukien #sampling`, max 2 extra). If the recording holds two ideas, propose a Part 1 / Part 2 split instead of cutting one
 - [ ] Any face/name/number blurred is listed with its timestamp
