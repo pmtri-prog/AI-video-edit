@@ -6,6 +6,19 @@ import { extractJson, generateText } from "../aiText.js";
 import { repoRoot } from "../config.js";
 import * as db from "../db.js";
 import { broadcast } from "../events.js";
+import {
+  CHANNEL_SKILL,
+  FIXED_HASHTAGS,
+  HOOK_FORMULAS,
+  MAX_EXTRA_HASHTAGS,
+  WOW_INSERT_ID,
+  WOW_SEC,
+  buildContentPrompt,
+  contentGateOf,
+  isChannelProject,
+  normReview,
+  type ContentDecision,
+} from "../contentGate.js";
 import { resolveTrimSource } from "../jobs/autoTrim.js";
 import {
   DEFAULT_INSERT_RULES,
@@ -25,7 +38,7 @@ import {
   type SfxMeta,
 } from "../meta.js";
 import { queue } from "../queue.js";
-import { HttpError, ensureDir, ffprobeDurationMs } from "../util.js";
+import { HttpError, ensureDir, ffprobeDurationMs, nowIso } from "../util.js";
 
 /**
  * Luồng DUYỆT TỪNG BƯỚC - Bước 2 "Minh họa".
@@ -340,7 +353,7 @@ router.post("/:id/steps/illustrate/suggest", async (req, res) => {
   const files = mediaFiles(id, base);
   const sfx = sfxOptions();
 
-  const prompt = buildSuggestPrompt(base, rules, files, sfx);
+  const prompt = buildSuggestPrompt(base, rules, files, sfx, openingRule(meta));
   const ai = await generateText({ prompt, usageTag: "steps-illustrate", projectId: id, timeoutMs: 3 * 60_000 });
   const parsed = extractJson<{ items?: unknown }>(ai.text);
   const items = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.items) ? parsed.items : null;
@@ -428,13 +441,141 @@ router.post("/:id/steps/illustrate/draft", async (req, res) => {
   res.status(202).json({ job: api });
 });
 
+// ------------------------- Duyệt 1 · Nội dung -------------------------
+//
+//   GET  /api/projects/:id/steps/content          -> ContentState
+//   POST /api/projects/:id/steps/content/analyze  -> ContentState (AI chấm câu móc, đếm ý)
+//   PUT  /api/projects/:id/steps/content          { decision } -> ContentState
+//
+// Quyết định cảnh wow 0–3s được ghi thành một minh họa người dùng (id cố định)
+// trong meta.inserts, nên Duyệt 2 thấy và sửa được như mọi minh họa khác.
+
+async function contentStateOf(id: string, meta: ProjectMeta = readMeta(id)) {
+  const base = await stepBase(id);
+  const gate = contentGateOf(meta);
+  return {
+    ...gate,
+    formulas: HOOK_FORMULAS,
+    channel: isChannelProject(meta) ? { skill: CHANNEL_SKILL, hashtags: FIXED_HASHTAGS, maxExtra: MAX_EXTRA_HASHTAGS } : null,
+    durationSec: base.durationSec,
+    hasTranscript: base.segments.length > 0,
+    files: mediaFiles(id, base),
+  };
+}
+
+router.get("/:id/steps/content", async (req, res) => {
+  assertProject(req.params.id);
+  res.json(await contentStateOf(req.params.id));
+});
+
+router.post("/:id/steps/content/analyze", async (req, res) => {
+  const id = req.params.id;
+  assertProject(id);
+  const base = await stepBase(id);
+  if (base.segments.length === 0) {
+    throw new HttpError(409, "NO_TRANSCRIPT", "Chưa có lời thoại - bóc lời trước khi chấm nội dung");
+  }
+  const ai = await generateText({
+    prompt: buildContentPrompt(base.segments, base.durationSec),
+    usageTag: "steps-content",
+    projectId: id,
+    timeoutMs: 3 * 60_000,
+  });
+  const parsed = extractJson(ai.text);
+  if (!parsed || typeof parsed !== "object") {
+    throw new HttpError(502, "CONTENT_PARSE_FAILED", `AI không trả về JSON hợp lệ. 200 ký tự đầu: ${ai.text.slice(0, 200)}`);
+  }
+  const meta = readMeta(id);
+  const gate = contentGateOf(meta);
+  meta.contentGate = { ...gate, review: normReview(parsed, base.segments, base.durationSec, nowIso()) };
+  writeMeta(id, meta);
+  res.json(await contentStateOf(id, meta));
+});
+
+router.put("/:id/steps/content", async (req, res) => {
+  const id = req.params.id;
+  assertProject(id);
+  const raw = ((req.body ?? {}) as { decision?: unknown }).decision;
+  if (!raw || typeof raw !== "object") throw new HttpError(400, "INVALID_DECISION", "Thiếu decision");
+  const d = raw as Record<string, unknown>;
+  const base = await stepBase(id);
+  const meta = readMeta(id);
+  const gate = contentGateOf(meta);
+
+  let wow: ContentDecision["wow"] = gate.decision.wow;
+  if ("wow" in d) {
+    wow = null;
+    const w = d.wow && typeof d.wow === "object" ? (d.wow as Record<string, unknown>) : null;
+    if (w) {
+      const src = safeProjectRel(id, w.src);
+      if (!src || !mediaFiles(id, base).some((f) => f.rel === src)) {
+        throw new HttpError(400, "INVALID_WOW_SRC", "Cảnh wow phải là video/ảnh nằm trong assets của project");
+      }
+      const ms = num(w.mediaStart);
+      wow = { src, mediaStart: Number.isFinite(ms) && ms >= 0 ? ms : 0 };
+    }
+  }
+  const decision: ContentDecision = {
+    splitParts:
+      "splitParts" in d ? (typeof d.splitParts === "boolean" ? d.splitParts : null) : gate.decision.splitParts,
+    title: "title" in d ? str(d.title, 120) : gate.decision.title,
+    wow,
+  };
+  meta.contentGate = { ...gate, decision };
+
+  // Cảnh wow ↔ minh họa mở đầu. Bỏ cả minh họa nào đè lên 0–3s để không chồng nhau.
+  const others = (meta.inserts ?? []).filter((x) => x.id !== WOW_INSERT_ID);
+  if (wow) {
+    const end = Math.min(WOW_SEC, base.durationSec || WOW_SEC);
+    const isImage = mediaFiles(id, base).find((f) => f.rel === wow.src)?.kind === "image";
+    const ins = normInsert(
+      id,
+      {
+        id: WOW_INSERT_ID,
+        start: 0,
+        end,
+        kind: isImage ? "image" : "video",
+        display: "full",
+        src: wow.src,
+        mediaStart: wow.mediaStart,
+        transitionIn: "cut",
+        transitionOut: "fade",
+        note: "Cảnh wow 0–3 giây (chọn ở Duyệt 1) - không mở bằng mặt người nói",
+      },
+      base,
+      meta.insertRules ?? DEFAULT_INSERT_RULES,
+      "user",
+    );
+    meta.inserts = [...(ins ? [ins] : []), ...others.filter((x) => x.start >= end)].sort((a, b) => a.start - b.start);
+  } else {
+    meta.inserts = others;
+  }
+  writeMeta(id, meta);
+  res.json(await contentStateOf(id, meta));
+});
+
 // --------------------------------- Prompt ---------------------------------
+
+/**
+ * Luật 0–3 giây cho AI đề xuất minh họa. Đã chọn cảnh wow ở Duyệt 1 → không đụng
+ * vào. Kênh TikTok của Trí cấm mở bằng mặt người nói (guideline mục 6).
+ */
+function openingRule(meta: ProjectMeta): string {
+  if ((meta.inserts ?? []).some((x) => x.id === WOW_INSERT_ID)) {
+    return `0–${WOW_SEC} giây đầu đã có cảnh wow do người dùng chọn - không chèn gì trong khoảng đó.`;
+  }
+  if (isChannelProject(meta)) {
+    return `0–${WOW_SEC} giây đầu PHẢI là một cảnh sự kiện thật (kind "video", display "full") phủ lên người nói - không mở bằng mặt người nói.`;
+  }
+  return "Không chèn trong 2 giây đầu (giữ mặt người nói), trừ khi câu mở đầu là một con số.";
+}
 
 function buildSuggestPrompt(
   base: StepBase,
   rules: InsertRules,
   files: ReturnType<typeof mediaFiles>,
   sfx: SfxOption[],
+  opening: string,
 ): string {
   const lines = base.segments.map((s) => `[${s.i}] ${s.start.toFixed(1)}–${s.end.toFixed(1)}s: ${s.text}`);
   const fileLines = files.length
@@ -463,7 +604,7 @@ ${sfxLines.join("\n")}
 
 LUẬT:
 1. Mỗi minh họa neo vào MỘT câu (segment). start/end nằm trong khoảng của câu đó (được lấn sang câu kế tối đa 1 giây). Dài 2–6 giây.
-2. Tổng thời gian các minh họa ≤ ${rules.maxCoverPct}% thời lượng video. Không chèn trong 2 giây đầu (giữ mặt người nói), trừ khi câu mở đầu là một con số.
+2. Tổng thời gian các minh họa ≤ ${rules.maxCoverPct}% thời lượng video. ${opening}
 3. Chỉ dùng chữ/số ĐÚNG như người nói. Tuyệt đối không bịa số liệu.
 4. Người nói nhắc tới vật/cảnh cụ thể mà có file khớp ở trên → kind "video" hoặc "image", src = đường dẫn file đó. Không có file khớp nhưng một cảnh quay thật sẽ giúp nhiều → kind "video", src null, note bắt đầu bằng "Cần file:" rồi mô tả ngắn cảnh nên quay/tải lên.
 5. display: motion graphic dùng "full" hoặc "top"; video dùng "full"; ảnh sản phẩm/màn hình có thể "pip".

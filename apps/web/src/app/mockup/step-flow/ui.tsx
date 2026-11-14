@@ -141,11 +141,14 @@ export function Stepper({
   statuses,
   current,
   onSelect,
+  firstNumber = 0,
 }: {
   names: readonly string[];
   statuses: readonly StepStatus[];
   current: number;
   onSelect: (i: number) => void;
+  /** Số hiện ở bước đầu - mockup đếm từ 0, luồng 4 lần duyệt đếm từ 1 */
+  firstNumber?: number;
 }) {
   return (
     <Card>
@@ -175,13 +178,13 @@ export function Stepper({
                   active ? "bg-[var(--bg-subtle)]" : ""
                 }`}
               >
-                <StepDot n={i} status={status} active={active} />
+                <StepDot n={i + firstNumber} status={status} active={active} />
                 <span
                   className={`whitespace-nowrap text-meta ${
                     active ? "font-semibold text-[var(--text)]" : "text-[var(--text-muted)]"
                   }`}
                 >
-                  {i}. {name}
+                  {i + firstNumber}. {name}
                 </span>
                 <span className="text-xs text-[var(--text-muted)]">{STEP_STATUS[status].label}</span>
               </button>

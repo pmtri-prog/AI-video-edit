@@ -834,6 +834,34 @@ InsertMeta = { id, anchor: {segment,text}|null, kind: video|image|motion, start,
 - Minh họa video/ảnh chưa có file bị bỏ qua trong draft (có log), không làm hỏng cả bản.
 - Lắp ráp tự tạo bản làm việc `renders/proxy/<stem>.<w>x<h>@<fps>.mp4` cho footage lớn hơn khung xuất (4K điện thoại).
 
+## Luồng 4 lần duyệt - Duyệt 1 "Nội dung"
+
+Trang `/projects/<id>/steps` gồm 4 cổng: Nội dung (tải, bóc lời, cắt thô + phần dưới) → Cảnh sự kiện (minh họa ở
+trên, dựng draft) → Bản nháp (QC) → Đóng gói (thumbnail, gói xuất bản, `assemble-final`).
+
+```
+GET  /api/projects/:id/steps/content           -> ContentState
+POST /api/projects/:id/steps/content/analyze   -> ContentState   (AI chấm, đồng bộ ~20-60s)
+PUT  /api/projects/:id/steps/content           { decision: Partial<ContentDecision> } -> ContentState
+
+ContentState = { review: ContentReview|null, decision: ContentDecision, formulas: HookFormula[7],
+                 channel: { skill, hashtags, maxExtra }|null, durationSec, hasTranscript, files }
+ContentReview = { generatedAt, hook: { text, start, end, formula: 1..7|null, weak, reason, suggestFormula },
+                  ideas: [{ title, start, end }], split: { at, question }|null,
+                  names: [{ text, note }], numbers: [{ text, note }] }
+ContentDecision = { splitParts: boolean|null, title, wow: { src, mediaStart }|null }
+```
+
+- Lưu trong `meta.json` → `contentGate`. Mốc giây theo video nền của luồng (bản cắt nếu có).
+- 7 công thức câu móc = skill `activos-tiktok` mục 6.1 (`apps/server/src/contentGate.ts`). Câu móc lấy chữ THẬT từ
+  transcript; mở bằng tên giải pháp ("ActivOS…", "TryOh…") hay câu nhật ký luôn bị gắn `weak`, không chờ AI.
+  Máy không viết lại lời người nói.
+- `decision.wow` ghi thành minh họa `id: "wow-open"` (0–3s, full, `origin: "user"`) trong `meta.inserts` và bỏ minh
+  họa khác đè lên 0–3s; `wow: null` gỡ nó. `src` phải là video/ảnh trong assets của project (400 `INVALID_WOW_SRC`).
+- `channel` khác null khi `brief.skill = "activos-tiktok"`: AI đề xuất minh họa phải mở bằng cảnh sự kiện thật, và
+  `POST /:id/publish` ép hashtag TikTok = `#tryoh #learnontiktok #sukien #sampling` + tối đa 2 tag.
+- Lỗi: 409 `NO_TRANSCRIPT`, 502 `CONTENT_PARSE_FAILED`, 400 `INVALID_DECISION`.
+
 ## Auto-trim: cắt khoảng lặng + mỡ thừa của MỘT video project
 
 Khác hẳn mục "Auto cut videos" ở trên (mục đó cắt một video dài thành nhiều video ngắn).

@@ -1,12 +1,16 @@
 "use client";
 
 /**
- * BẢN THỬ luồng "duyệt từng bước" trên một video project THẬT.
+ * Luồng 4 LẦN DUYỆT trên một video project thật. Người duyệt chỉ quyết nội dung,
+ * phần kỹ thuật máy tự chạy giữa các cổng:
  *
- * Bước 0 (tải video thô) và Bước 1 (bóc lời → đo khoảng lặng + chỗ nói thừa →
- * người duyệt từng chỗ → cắt) chạy thật qua backend. Bước 2–6 vẫn là giao diện
- * mô phỏng của /mockup/step-flow. Trạng thái "đã duyệt" của từng bước tạm lưu ở
- * localStorage - khi chốt luồng sẽ chuyển xuống meta.json của project.
+ *   Duyệt 1 Nội dung      tải video, bóc lời, cắt thô, chấm câu móc, số ý, cảnh wow 0–3s
+ *   Duyệt 2 Cảnh sự kiện  cảnh nào chèn câu nào (minh họa), dựng bản nháp
+ *   Duyệt 3 Bản nháp      xem bản nháp + QC tự động
+ *   Duyệt 4 Đóng gói      ảnh bìa, caption + hashtag, render final
+ *
+ * Luật nội dung lấy từ skill activos-tiktok mục 6.1 và guideline activos mục 5–6.
+ * Trạng thái "đã duyệt" của từng cổng lưu ở localStorage.
  */
 
 import { Check, Film, Play, RotateCcw, Scissors, Upload } from "lucide-react";
@@ -48,27 +52,15 @@ import { PageHeader } from "@/components/PageHeader";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Segmented } from "@/components/Segmented";
 import { StatTile } from "@/components/StatTile";
-import {
-  MusicStep,
-  PublishStep,
-  SubtitleStep,
-  ThumbnailStep,
-  type SubPreset,
-  type ThumbLayout,
-} from "@/app/mockup/step-flow/steps";
 import { Frame, STEP_STATUS, Stepper, type StepStatus } from "@/app/mockup/step-flow/ui";
+import { ProjectQcCard } from "@/components/ProjectQcCard";
+import { getContentGate, type ContentGateState } from "@/lib/api";
+import { ContentGate, contentGateWarnings } from "./ContentGate";
 import { IllustrateReal } from "./IllustrateReal";
+import { PackageGate } from "./PackageGate";
 import { TrimTimeline, type Range } from "./TrimTimeline";
 
-const NAMES = [
-  "Đầu vào",
-  "Cắt thô",
-  "Minh họa",
-  "Phụ đề & chữ",
-  "Nhạc nền",
-  "Thumbnail",
-  "Duyệt & xuất bản",
-] as const;
+const NAMES = ["Nội dung", "Cảnh sự kiện", "Bản nháp", "Đóng gói"] as const;
 
 const KIND_LABEL: Record<DeadWeightKind, string> = {
   filler: "Từ đệm",
@@ -106,7 +98,8 @@ interface StepState {
 }
 
 function useStepState(id: string) {
-  const key = `aiev-steps-${id}`;
+  // Khóa mới: chỉ số cổng khác hẳn 7 bước cũ, đọc lại khóa cũ là duyệt nhầm cổng
+  const key = `aiev-gates-${id}`;
   const [state, setState] = useState<StepState>({ approved: [], stale: [] });
   useEffect(() => {
     try {
@@ -140,11 +133,7 @@ export default function StepsPage() {
   const [preview, setPreview] = useState<"source" | "cut" | "draft">("source");
   /** Vị trí đang phát của video GỐC - cho vạch chạy trên timeline cắt tay */
   const [playhead, setPlayhead] = useState(0);
-  // state của các bước mô phỏng
-  const [subPreset, setSubPreset] = useState<SubPreset>("pop");
-  const [hl, setHl] = useState("#ffd23f");
-  const [thumbFrame, setThumbFrame] = useState(1);
-  const [thumbLayout, setThumbLayout] = useState<ThumbLayout>("bottom");
+  const [content, setContent] = useState<ContentGateState | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const stopAt = useRef<number | null>(null);
@@ -170,6 +159,14 @@ export default function StepsPage() {
   useEffect(() => {
     if (!project) return;
     getAutoTrimReport(id, project.updatedAt).then(setReport);
+  }, [id, project]);
+
+  // Duyệt 4 cần quyết định của Duyệt 1 (tiêu đề, tách phần) dù người dùng nhảy thẳng tới
+  useEffect(() => {
+    if (!project) return;
+    getContentGate(id)
+      .then(setContent)
+      .catch(() => {});
   }, [id, project]);
 
   useJobEvents((job) => {
@@ -204,17 +201,19 @@ export default function StepsPage() {
   const lastDraft = jobs.find((j) => j.type === "assemble-draft" && j.status === "done" && j.outputPath);
   const draftRel = lastDraft?.outputPath ?? null;
 
+  const finalJob = latestOf("assemble-final");
+
   const statuses: StepStatus[] = NAMES.map((_, i) => {
     if (steps.stale.includes(i)) return "stale";
     if (steps.approved.includes(i)) return "approved";
-    if (i === 0) return "review";
-    // Đã có bản cắt hoặc đã duyệt Bước 0 thì Bước 1 đang chờ duyệt, không phải "chưa làm"
-    if (i === 1) return busy ? "running" : cutRel || steps.approved.includes(0) ? "review" : "todo";
-    if (i === 2) {
+    if (i === 0) return isActive(transcribeJob) || isActive(trimJob) ? "running" : "review";
+    if (i === 1) {
       if (isActive(draftJob)) return "running";
-      return draftRel || steps.approved.includes(1) ? "review" : "todo";
+      return draftRel || steps.approved.includes(0) ? "review" : "todo";
     }
-    return "todo";
+    if (i === 2) return draftRel && steps.approved.includes(1) ? "review" : "todo";
+    if (isActive(finalJob)) return "running";
+    return steps.approved.includes(2) ? "review" : "todo";
   });
   const st = statuses[current];
 
@@ -262,8 +261,14 @@ export default function StepsPage() {
     void v.play();
   }
 
+  const contentWarnings = contentGateWarnings(content);
+  // Cổng 1 cần bản cắt + đã chấm nội dung; cảnh báo còn lại là để người duyệt quyết, không chặn
   const canApprove =
-    current === 0 ? !!source : current === 1 ? !!cutRel && !busy : current === 2 ? !!draftRel && !busy : false;
+    current === 0
+      ? !!cutRel && !!content?.review && !busy
+      : current === 1 || current === 2
+        ? !!draftRel && !busy
+        : !!project?.output && !busy;
 
   const previewRel =
     preview === "draft" && draftRel
@@ -295,18 +300,13 @@ export default function StepsPage() {
         title={project?.name ?? id}
         subtitle={
           project
-            ? `${project.width}×${project.height} · ${project.fps}fps · bản thử luồng duyệt từng bước`
+            ? `${project.width}×${project.height} · ${project.fps}fps · luồng 4 lần duyệt`
             : undefined
         }
         actions={<LinkButton href={`/projects/${id}`}>Mở trang project cũ</LinkButton>}
       />
 
-      <Banner
-        tone="info"
-        message="Bản thử: Bước 0, 1, 2 chạy thật trên video của bạn. Bước 3–6 vẫn là giao diện mô phỏng với dữ liệu giả."
-      />
-
-      <Stepper names={NAMES} statuses={statuses} current={current} onSelect={setCurrent} />
+      <Stepper names={NAMES} statuses={statuses} current={current} onSelect={setCurrent} firstNumber={1} />
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="flex flex-col gap-4 lg:sticky lg:top-4">
@@ -364,7 +364,7 @@ export default function StepsPage() {
           <Card
             title={
               <span className="flex items-center gap-2">
-                Bước {current} · {NAMES[current]}
+                Duyệt {current + 1} · {NAMES[current]}
                 <Badge tone={STEP_STATUS[st].tone} label={STEP_STATUS[st].label} />
               </span>
             }
@@ -375,66 +375,86 @@ export default function StepsPage() {
                 </Button>
               ) : (
                 <Button variant="primary" onClick={approve} disabled={!canApprove}>
-                  <Check size={14} /> Duyệt, sang Bước {current + 1}
+                  <Check size={14} />{" "}
+                  {current < NAMES.length - 1 ? `Duyệt, sang Duyệt ${current + 2}` : "Duyệt xong"}
                 </Button>
               )
             }
           >
             <p className="text-sm">
               {current === 0 &&
-                (source
-                  ? `Video thô: ${source.name} · ${formatBytes(source.size)}. Không có kịch bản - Bước 1 sẽ cắt theo chính lời bạn nói.`
-                  : "Tải video thô lên để bắt đầu.")}
-              {current === 1 &&
                 (cutRel && myReport
-                  ? `Đã cắt: ${dur(myReport.duration.beforeSec)} → ${dur(myReport.duration.afterSec ?? myReport.duration.beforeSec)}. Xem bản đã cắt bên trái, ổn thì duyệt.`
-                  : "AI bóc lời, đo khoảng lặng và tìm chỗ nói thừa. Bạn nghe và tick từng chỗ muốn cắt rồi bấm Cắt.")}
+                  ? `Đã cắt: ${dur(myReport.duration.beforeSec)} → ${dur(myReport.duration.afterSec ?? myReport.duration.beforeSec)}. Chấm câu móc, chọn cảnh wow 0–3 giây, chốt số ý rồi duyệt.`
+                  : "Tải video, bóc lời, tick chỗ cần cắt rồi bấm Cắt. Không cắt nội dung chỉ để cho ngắn: video câu chuyện được dài khoảng 2 phút.")}
+              {current === 1 &&
+                (draftRel
+                  ? "Bản nháp đã có cảnh sự kiện - xem bên trái (nút Draft). Kiểm tra mỗi cảnh khớp lời nói, không lộ mặt khách chưa đồng ý, logo được phép."
+                  : "AI đề xuất cảnh sự kiện chèn vào từng câu. Sửa từng cảnh rồi bấm Dựng draft.")}
               {current === 2 &&
                 (draftRel
-                  ? "Draft đã có minh họa - xem bên trái (nút Draft). Ổn thì duyệt, chưa ổn thì sửa từng minh họa rồi dựng lại."
-                  : "AI đề xuất chỗ chèn video, ảnh, motion graphic theo lời bạn nói. Sửa từng cái rồi bấm Dựng draft.")}
-              {current >= 3 && "Bước này chưa nối thật - bên dưới là giao diện mô phỏng với dữ liệu giả."}
+                  ? "Xem hết bản nháp bên trái và chạy QC tự động. Cần sửa cảnh thì mở lại Duyệt 2, cần sửa đoạn cắt thì mở lại Duyệt 1."
+                  : "Chưa có bản nháp - dựng ở Duyệt 2.")}
+              {current === 3 &&
+                (project?.output
+                  ? "Đã có bản final. Kiểm tra ảnh bìa và caption rồi duyệt."
+                  : "Tạo ảnh bìa từ cảnh sự kiện thật, soạn caption, rồi render final.")}
             </p>
-            {current === 1 && !steps.approved.includes(0) && (
-              <p className={`mt-2 text-meta ${muted}`}>Bước 0 chưa duyệt - vẫn làm được, nhưng nên duyệt Bước 0 trước.</p>
+            {current === 0 && contentWarnings.length > 0 && (
+              <ul className={`mt-2 list-disc pl-5 text-meta ${muted}`}>
+                {contentWarnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            )}
+            {current > 0 && !steps.approved.includes(current - 1) && (
+              <p className={`mt-2 text-meta ${muted}`}>
+                Duyệt {current} chưa xong - vẫn làm được, nhưng nên duyệt theo thứ tự.
+              </p>
             )}
           </Card>
 
           {current === 0 && (
-            <SourceStep
-              id={id}
-              videos={videos}
-              sourceRel={sourceRel}
-              onPick={(rel) => {
-                setSourceRel(rel);
-                setPreview("source");
-              }}
-              onUploaded={(f) => {
-                setSourceRel(f.relPath);
-                reload();
-              }}
-            />
-          )}
-          {current === 1 &&
-            (source ? (
-              <CutStepReal
+            <>
+              <SourceStep
                 id={id}
-                source={source}
-                hasTranscript={hasTranscript}
-                transcribeJob={transcribeJob}
-                trimJob={trimJob}
-                busy={busy}
-                report={myReport}
-                playhead={playhead}
-                onSeek={seekTo}
-                onPlay={playRange}
-                onShowCut={() => setPreview("cut")}
-                onJob={(j) => setJobs((list) => [j, ...list])}
+                videos={videos}
+                sourceRel={sourceRel}
+                onPick={(rel) => {
+                  setSourceRel(rel);
+                  setPreview("source");
+                }}
+                onUploaded={(f) => {
+                  setSourceRel(f.relPath);
+                  reload();
+                }}
               />
-            ) : (
-              <Banner tone="muted" message="Chưa có video - quay lại Bước 0 để tải video lên." />
-            ))}
-          {current === 2 && (
+              {source && (
+                <CutStepReal
+                  id={id}
+                  source={source}
+                  hasTranscript={hasTranscript}
+                  transcribeJob={transcribeJob}
+                  trimJob={trimJob}
+                  busy={busy}
+                  report={myReport}
+                  playhead={playhead}
+                  onSeek={seekTo}
+                  onPlay={playRange}
+                  onShowCut={() => setPreview("cut")}
+                  onJob={(j) => setJobs((list) => [j, ...list])}
+                />
+              )}
+              {hasTranscript && (
+                <ContentGate
+                  id={id}
+                  version={project?.updatedAt}
+                  onPlay={(a, b) => playRange(a, b, "cut")}
+                  onState={setContent}
+                />
+              )}
+            </>
+          )}
+          {current === 1 && (
             <IllustrateReal
               id={id}
               busy={busy}
@@ -444,19 +464,18 @@ export default function StepsPage() {
               onShowDraft={() => setPreview("draft")}
             />
           )}
-          {current === 3 && (
-            <SubtitleStep preset={subPreset} setPreset={setSubPreset} hl={hl} setHl={setHl} />
-          )}
-          {current === 4 && <MusicStep />}
-          {current === 5 && (
-            <ThumbnailStep
-              frame={thumbFrame}
-              setFrame={setThumbFrame}
-              layout={thumbLayout}
-              setLayout={setThumbLayout}
+          {current === 2 && <ProjectQcCard projectId={id} onChanged={reload} />}
+          {current === 3 && project && (
+            <PackageGate
+              project={project}
+              content={content}
+              draftRel={draftRel}
+              finalJob={finalJob}
+              busy={busy}
+              onJob={(j) => setJobs((list) => [j, ...list])}
+              onChanged={reload}
             />
           )}
-          {current === 6 && <PublishStep />}
         </div>
       </div>
     </div>
