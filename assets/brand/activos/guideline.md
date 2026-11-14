@@ -82,7 +82,7 @@ File font nằm sẵn trong `assets/styles/files/activos/`: `Archivo-VF.ttf` (bi
 ## 5. Định dạng video
 
 - **Khung:** dọc 9:16, 1080 × 1920.
-- **Độ dài:** 40–60 giây.
+- **Độ dài:** mục tiêu 40–60 giây. Video có câu chuyện thật (sự cố, hậu trường, hỏi đáp, collab) được dài tới khoảng 2 phút, miễn là giây nào cũng có việc. (Trí duyệt 14/11/2026)
 - **Phụ đề cứng toàn bộ**, vì người xem thường tắt tiếng.
 - **Vùng an toàn:** chữ và logo nằm trong khoảng 150px dưới mép trên, trên 400px cách mép dưới, và cách mép phải 140px, để không bị nút và caption của TikTok che.
 - **Chuyển động:** chậm, có mục đích. Zoom nhẹ 1 → 1,08. Không hiệu ứng giật, không chuyển cảnh lòe loẹt.
@@ -107,13 +107,29 @@ File font nằm sẵn trong `assets/styles/files/activos/`: `Archivo-VF.ttf` (bi
 
 | Giây | Lớp | Làm gì |
 |---|---|---|
-| 0–3 | Wow · hook | Cảnh trải nghiệm thật hoặc một con số có ngày và nơi. **Không mở bằng mặt người nói.** |
+| 0–3 | Wow · hook | **Một cảnh wow thật**: khoảnh khắc làm người xem dừng tay (đám đông vây máy, ảnh vừa in ra, tay người chơi nhận quà, hai máy đứng cạnh nhau giữa sự kiện), hoặc một con số có ngày và nơi đè lên cảnh đó. Câu hook là lời lồng tiếng đè lên cảnh. **Không mở bằng mặt người nói** (Trí giữ luật này sau khi so với kênh Khánh LifeTech, 14/11/2026). |
 | 3–25 | Wow · concept | Trải nghiệm là gì, vì sao người qua đường dừng lại |
 | 25–40 | Consent | Người chơi xác thực khoảng 10 giây, đồng ý rõ ràng. Quay cận tay, che số |
 | 40–55 | Engage | Nhãn chăm lại người đã đồng ý. Một con số có ngày và nơi |
 | 55–60 | Câu hỏi | Một câu hỏi thật cho người trong nghề, video kết ở câu này (không end card) |
 
-**Một video = một ý, một con số.** Có hai ý thì cắt thành hai video.
+**Một video = một ý, một con số.** Có hai ý thì cắt thành hai video, đặt tên "Phần 1" và "Phần 2". Phần 1 kết bằng một câu hỏi bỏ ngỏ dẫn sang phần 2, để người xem vào trang kênh tìm. Không bỏ bớt ý thứ hai cho vừa một video. (Trí duyệt 14/11/2026)
+
+**Caption khi đăng:** một câu tóm tắt đúng câu hook, rồi bộ hashtag cố định `#tryoh #learnontiktok #sukien #sampling`, thêm tối đa 2 tag theo nội dung. (Trí duyệt 14/11/2026)
+
+**Lịch đăng (đang thử từ 14/11/2026):** tối đa 2 video một ngày, cách nhau ít nhất 6–8 tiếng để hai video không giành view của nhau. Video thứ hai đăng chiều tối, thử khung 19:00–21:00 (khung kênh Khánh LifeTech hay đăng). Chờ video trước chạy ổn rồi mới đăng video sau.
+
+### 6C. Nguồn gốc các luật ở mục 6–6B
+
+Các luật về hook, độ dài, chia phần, caption, dạng video và lịch đăng là kết quả so kênh với Khánh LifeTech (@khanh.lifetech, 46 video, đọc phụ đề tự động) ngày 14/11/2026, Trí duyệt từng mục. Các điều Trí **không** chọn, đừng tự áp: gom playlist theo series, chèn cảnh demo bằng tay, AI tự gợi ý tình huống đời thường trong thân bài, mở video bằng mặt người nói. Bảng 7 công thức hook nằm ở skill `activos-tiktok` mục 6.1.
+
+### 6B. Dạng video được dùng thêm (Trí duyệt 14/11/2026)
+
+Học từ kênh Khánh LifeTech: các bài hỏi đáp, collab và bám thời sự của kênh đó được nhiều view gấp nhiều lần bài thường.
+
+- **Hỏi đáp hai người.** Một người hỏi (bạn làm agency, nhân viên vận hành), Trí trả lời. Người hỏi đóng vai người xem, hỏi đúng câu người trong nghề hay thắc mắc. Người hỏi lộ mặt được vì là người cùng làm, không phải người tiêu dùng, nhưng phải đồng ý trước. Tên và chức danh của họ chỉ lên màn hình khi họ đồng ý.
+- **Collab.** Quay cùng người trong ngành sự kiện, agency, hoặc creator đã chạy booth. Luật tên khách ở mục 9 vẫn giữ: nhãn hay agency của khách chưa duyệt thì không nêu tên.
+- **Bám thời sự.** Ra video đúng lúc có chuyện: mùa TikTok Beauty Fest, Food Fest, TikTok Awards, sự kiện lớn của ngành. Tin về luật dữ liệu cá nhân chỉ được nói sau khi đã soát luật (mục 10). Câu hook vẫn theo một trong 7 công thức của skill `activos-tiktok`.
 
 ## 7. Giọng nói và lời thoại
 
