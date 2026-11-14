@@ -12,6 +12,13 @@ import {
   type Brief,
   type ProjectMeta,
 } from "../meta.js";
+import {
+  FIXED_HASHTAGS,
+  MAX_EXTRA_HASHTAGS,
+  channelHashtags,
+  contentGateOf,
+  isChannelProject,
+} from "../contentGate.js";
 import { getStyle, type StyleDesign } from "../styles.js";
 import { cuesToSrt, cuesToVtt, segmentsToCues, type SubtitleCue } from "../subtitles.js";
 import { readProjectTranscript, transcriptToTimedText, type ProjectTranscript } from "../transcript.js";
@@ -198,6 +205,22 @@ function buildPublishPrompt(input: {
     }
   }
   lines.push("");
+
+  if (isChannelProject(meta)) {
+    // Luật kênh TikTok cá nhân (guideline activos mục 6) - hashtag còn bị server ép lại sau
+    const hook = contentGateOf(meta).review?.hook.text;
+    lines.push("## Luật kênh (bắt buộc với tiktok)");
+    lines.push(
+      "- description: CÂU ĐẦU là một câu tóm tắt đúng câu móc mở đầu video" +
+        (hook ? ` ("${hook}")` : "") +
+        ", không đổi ý, không thêm số liệu.",
+    );
+    lines.push(
+      `- hashtags: đúng ${FIXED_HASHTAGS.join(" ")} rồi thêm tối đa ${MAX_EXTRA_HASHTAGS} tag theo nội dung.`,
+    );
+    lines.push("- Không chê nhãn hàng hay agency khác, không nói tiền của nhãn.");
+    lines.push("");
+  }
 
   lines.push("## Ràng buộc chung");
   lines.push("- Toàn bộ tiếng Việt CÓ DẤU đầy đủ, không viết tắt kiểu teencode.");
@@ -398,6 +421,8 @@ router.post("/:id/publish", async (req, res) => {
   for (const raw of rawItems) {
     const item = normItem(raw, platforms);
     if (!item || seen.has(item.platform)) continue; // bỏ item lạ / trùng nền tảng
+    // Prompt chỉ là lời khuyên - bộ hashtag cố định của kênh phải ép ở server
+    if (item.platform === "tiktok" && isChannelProject(meta)) item.hashtags = channelHashtags(item.hashtags);
     seen.add(item.platform);
     items.push(item);
   }

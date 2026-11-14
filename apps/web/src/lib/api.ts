@@ -1111,7 +1111,15 @@ export const updateAssetDescription = (
  */
 export const createThumbnail = (
   id: string,
-  input: { title: string; frameAt?: number; bgPrompt?: string }
+  input: {
+    title: string;
+    frameAt?: number;
+    bgPrompt?: string;
+    /** Video lấy frame - tính từ repo root; bỏ trống = output final hoặc video đầu tiên */
+    sourceRel?: string;
+    /** ≤ 3 nhãn dán (bố cục "Nhãn dán" của style phẳng) */
+    tags?: string[];
+  }
 ) =>
   post<{ file: string; relPath: string }>(
     `/api/projects/${encodeURIComponent(id)}/thumbnail`,
@@ -2155,6 +2163,62 @@ export const suggestIllustrate = (id: string) => post<IllustrateState>(`${stepsP
  */
 export const draftIllustrate = (id: string, force = false) =>
   post<{ job: Job }>(`${stepsPath(id)}/draft`, force ? { force: true } : {});
+
+// ------------------------- Duyệt 1 · Nội dung (luồng 4 lần duyệt) -------------------------
+
+export interface HookFormula {
+  id: number;
+  name: string;
+  example: string;
+  /** Chỉ dùng khi có thật (bình luận thật, sự cố thật) */
+  realOnly: boolean;
+}
+
+export interface ContentReview {
+  generatedAt: string;
+  hook: {
+    text: string;
+    start: number;
+    end: number;
+    formula: number | null;
+    weak: boolean;
+    reason: string;
+    suggestFormula: number | null;
+  };
+  ideas: Array<{ title: string; start: number; end: number }>;
+  split: { at: number; question: string } | null;
+  names: Array<{ text: string; note: string }>;
+  numbers: Array<{ text: string; note: string }>;
+}
+
+export interface ContentDecision {
+  splitParts: boolean | null;
+  title: string;
+  /** Cảnh wow 0–3s - src tính từ thư mục project */
+  wow: { src: string; mediaStart: number } | null;
+}
+
+export interface ContentGateState {
+  review: ContentReview | null;
+  decision: ContentDecision;
+  formulas: HookFormula[];
+  /** Luật kênh TikTok cá nhân - null khi project không dùng skill activos-tiktok */
+  channel: { skill: string; hashtags: string[]; maxExtra: number } | null;
+  durationSec: number;
+  hasTranscript: boolean;
+  files: IllustrateState["files"];
+}
+
+const contentPath = (id: string) => `/api/projects/${encodeURIComponent(id)}/steps/content`;
+
+export const getContentGate = (id: string) => request<ContentGateState>(contentPath(id));
+
+/** AI chấm câu móc theo 7 công thức + đếm số ý. Đồng bộ, ~20-60s. */
+export const analyzeContentGate = (id: string) => post<ContentGateState>(`${contentPath(id)}/analyze`);
+
+/** Lưu quyết định Duyệt 1. Chọn cảnh wow = server ghi minh họa mở đầu 0–3s vào meta.inserts. */
+export const saveContentDecision = (id: string, decision: Partial<ContentDecision>) =>
+  jsonBody<ContentGateState>(contentPath(id), "PUT", { decision });
 
 /** Sóng âm + chữ của video nguồn cho timeline cắt tay (Bước 1). peaks: 0..1, `peaksPerSec` điểm mỗi giây. */
 export interface TrimWaveform {
