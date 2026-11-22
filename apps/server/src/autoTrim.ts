@@ -1049,9 +1049,17 @@ function survives(
  * start/end của câu được ép về đúng biên chữ còn lại (giữ nguyên start cũ sẽ
  * ra một câu bắt đầu trước cả chữ đầu tiên của chính nó).
  *
- * Mọi trường khác (text, srcIndex, confidence, speaker...) được sao nguyên -
- * hàm này chỉ biết về start/end/words/segments.
+ * Câu bị cắt mất một phần chữ thì `text` được ghép lại từ chữ còn sống; mọi trường
+ * khác (srcIndex, confidence, speaker...) được sao nguyên.
  */
+/** Ghép chữ Whisper (thường mang sẵn khoảng trắng đầu " Gần") thành một câu sạch. */
+function joinWords(words: WordLike[]): string {
+  return words
+    .map((w) => (typeof w.word === "string" ? w.word.trim() : ""))
+    .filter(Boolean)
+    .join(" ");
+}
+
 export function remapWordTimestamps<T>(transcript: T, keepRanges: Array<[number, number]>): T {
   const src = transcript as unknown as TranscriptLike;
   const { ranges, totalSec } = buildMapper(keepRanges);
@@ -1078,7 +1086,11 @@ export function remapWordTimestamps<T>(transcript: T, keepRanges: Array<[number,
       if (kept.length === 0) continue; // cả câu nằm trong phần bị cắt
       const first = kept[0].start as number;
       const last = kept[kept.length - 1].end as number;
-      segments.push({ ...seg, start: first, end: Math.max(first, last), words: kept });
+      const next: SegmentLike = { ...seg, start: first, end: Math.max(first, last), words: kept };
+      // Câu mất một phần chữ thì `text` cũ vẫn chứa chữ đã cắt: chấm hook, phụ đề, key đọc
+      // `text` sẽ thấy lại đúng đoạn nói hỏng vừa bỏ. Ghép lại từ chữ còn sống.
+      if (kept.length < words.length && typeof seg.text === "string") next.text = joinWords(kept);
+      segments.push(next);
       continue;
     }
     // Câu không kèm word timestamp: xử như một "chữ" dài bằng cả câu

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { extractJson, generateText } from "./aiText.js";
 import { planByTime, type AutoCutMeta, type AutoCutSegment } from "./autoCutMeta.js";
+import { screenRawFootage } from "./autoCutScreen.js";
 import {
   parseTranscriptJson,
   transcriptToTimedText,
@@ -13,6 +14,7 @@ import { HttpError, toRepoRel } from "./util.js";
  * - mode "time"  : chia đều theo phút (không cần transcript)
  * - mode "ai"    : AI đọc transcript chọn đoạn hay
  * - mode "prompt": AI đọc transcript chọn đoạn khớp yêu cầu người dùng
+ * - mode "raw"   : footage thô ngoài đường - lọc + chấm TA/định hướng/giá trị (autoCutScreen.ts)
  *
  * Cách làm prompt + làm sạch kết quả đi theo đúng `routes/clips.ts`
  * (`buildClipPrompt` / `sanitizeClips`) - cùng một bài toán "AI chọn đoạn từ
@@ -341,9 +343,13 @@ export async function planAutoCutSegments(input: {
   // Thời lượng nguồn là chuẩn; transcript có thể kết thúc sớm hơn (đoạn cuối im lặng)
   const total = durationSec > 0 ? durationSec : transcript.durationSec;
 
-  const count = Math.round(clamp(num(params.count) ?? 5, 1, 20));
+  const count = Math.round(clamp(num(params.count) ?? 5, 1, meta.mode === "raw" ? 40 : 20));
   const minSec = clamp(num(params.minSec) ?? 20, MIN_SEGMENT_SEC, 3600);
   const maxSec = clamp(num(params.maxSec) ?? 60, minSec + 1, 3600);
+
+  if (meta.mode === "raw") {
+    return screenRawFootage({ meta, transcript, durationSec: total, count, minSec, maxSec, onLog });
+  }
 
   log(
     `[plan] chế độ ${meta.mode}: hỏi AI chọn tối đa ${count} đoạn ${minSec}-${maxSec}s ` +

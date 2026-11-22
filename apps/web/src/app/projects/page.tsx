@@ -32,6 +32,7 @@ import {
 } from "@/lib/api";
 import { Card } from "@/components/Card";
 import { ProjectBadge } from "@/components/Badge";
+import { StepProgress } from "@/components/StepProgress";
 import { Banner } from "@/components/Banner";
 import { Button } from "@/components/Button";
 import { CloneProjectModal } from "@/components/CloneProjectModal";
@@ -652,7 +653,7 @@ export default function ProjectsPage() {
                 <tr
                   key={p.id}
                   className="row-click"
-                  onClick={() => router.push(`/projects/${p.id}`)}
+                  onClick={() => router.push(p.steps ? `/projects/${p.id}/steps` : `/projects/${p.id}`)}
                 >
                   <td onClick={(e) => e.stopPropagation()}>
                     <input
@@ -703,7 +704,8 @@ export default function ProjectsPage() {
                     {p.width}×{p.height} · {p.fps}fps
                   </td>
                   <td>
-                    <ProjectBadge status={p.status} />
+                    {/* Project đi luồng 4 lần duyệt: hiện đang ở bước nào thay cho nhãn Nháp */}
+                    {p.steps ? <StepProgress gates={p.steps} /> : <ProjectBadge status={p.status} />}
                   </td>
                   <td
                     className="text-[var(--text-muted)]"

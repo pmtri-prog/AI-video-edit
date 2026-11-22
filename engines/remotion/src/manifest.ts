@@ -175,12 +175,25 @@ export const musicSchema = z.looseObject({
   speech: z.array(z.tuple([z.number(), z.number()])).default([]),
 });
 
+/**
+ * Một đoạn nhạc của chế độ "theo đoạn" (bước Âm thanh): bài phát từ đầu tại
+ * `from`, dừng ở `to` (GIÂY trên timeline). Hai đoạn liền nhau đè lên nhau
+ * `crossfade` giây ở biên - bài trước nhỏ dần, bài sau to dần.
+ */
+export const musicSectionSchema = musicSchema.extend({
+  from: z.number().min(0),
+  to: z.number().min(0),
+  crossfade: z.number().min(0).max(5).default(1),
+});
+
 export const audioSchema = z.looseObject({
   /** Voice-over chạy suốt từ frame 0 (đường dẫn staging) */
   voice: z.string().nullable().optional(),
   sfx: z.array(sfxSchema).default([]),
   /** Nhạc nền auto-ducking — null = không dùng nhạc */
   music: musicSchema.nullable().default(null),
+  /** Nhạc theo đoạn - dùng thay cho `music` (bước Âm thanh chế độ "theo đoạn") */
+  musicSections: z.array(musicSectionSchema).default([]),
 });
 
 /**
@@ -301,7 +314,7 @@ export const manifestSchema = z.looseObject({
   /** "draft" | "rendering" | "done" — giữ string để không strict-fail giá trị mới */
   status: z.string(),
   scenes: z.array(sceneSchema).min(1),
-  audio: audioSchema.default({ sfx: [], music: null }),
+  audio: audioSchema.default({ sfx: [], music: null, musicSections: [] }),
   /**
    * Phụ đề karaoke overlay TOÀN BÀI (việc của tầng lắp ráp, xem skill
    * video-pipeline). Rỗng = không overlay; scene HyperFrames tự lo chữ của nó.
@@ -335,6 +348,7 @@ export type Sfx = z.infer<typeof sfxSchema>;
 export type Insert = z.infer<typeof insertSchema>;
 export type InsertTheme = z.infer<typeof insertThemeSchema>;
 export type Music = z.infer<typeof musicSchema>;
+export type MusicSection = z.infer<typeof musicSectionSchema>;
 export type Zoom = z.infer<typeof zoomSchema>;
 export type CaptionWord = z.infer<typeof captionWordSchema>;
 export type CaptionCue = z.infer<typeof captionCueSchema>;

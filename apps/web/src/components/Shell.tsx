@@ -26,7 +26,9 @@
 
 import {
   AudioLines,
+  Megaphone,
   BookOpen,
+  ChartLine,
   Clapperboard,
   ExternalLink,
   FileText,
@@ -112,6 +114,8 @@ const NAV = [
   { href: "/projects", label: "nav.projects", icon: Clapperboard },
   { href: "/images", label: "nav.images", icon: Images },
   { href: "/auto-cut", label: "nav.auto-cut", icon: Scissors },
+  // Ngay dưới Auto cut: clip cắt xong đi tiếp sang đây để thành bài đăng đa kênh
+  { href: "/content", label: "nav.content", icon: Megaphone },
   { href: "/text-to-video", label: "nav.text-to-video", icon: FileText },
   // Ngay dưới Text to video theo đúng yêu cầu: hai tính năng đều "đưa nội dung
   // vào, nhận video ra", để cạnh nhau người dùng khỏi phải quét cả sidebar.
@@ -125,6 +129,7 @@ const NAV = [
   // liệu và chuyển động của riêng từng video (xem CLAUDE.md mục 5.6).
   { href: "/video-styles", label: "nav.video-styles", icon: Shapes },
   { href: "/queue", label: "nav.queue", icon: ListVideo },
+  { href: "/channel-stats", label: "nav.channel-stats", icon: ChartLine },
   { href: "/assets", label: "nav.assets", icon: FolderOpen },
   { href: "/sfx", label: "nav.sfx", icon: AudioLines },
   { href: "/prompts", label: "nav.prompts", icon: ScrollText },

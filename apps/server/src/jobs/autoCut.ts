@@ -295,7 +295,7 @@ async function stepCut(ctx: JobCtx, id: string): Promise<void> {
         // User đặt key chung cho cả loạt thì tôn trọng, để trống thì lấy tiêu đề đoạn
         mainKey: sessionBrief.mainKey.trim() || seg.title,
         // Hướng dẫn bắt buộc về file đã cắt sẵn phải đứng TRƯỚC, ghi chú của user nối sau
-        notes: [childNotes(seg, fileName, target, layout, sessionBrief.autoCut), sessionBrief.notes.trim()]
+        notes: [childNotes(seg, fileName, target, layout, sessionBrief.autoCut, meta.params.audience), sessionBrief.notes.trim()]
           .filter(Boolean)
           .join("\n\n"),
       },
@@ -464,6 +464,8 @@ function childNotes(
   target: { width: number; height: number },
   layout: ReframeLayout,
   autoCut: boolean,
+  /** mode raw: khán giả mục tiêu của phiên, để phiên dựng chọn giọng/nhịp đúng người xem */
+  audience?: string,
 ): string {
   const lines = [
     "## Đoạn cắt tự động (Auto cut videos)",
@@ -486,6 +488,20 @@ function childNotes(
   ];
   if (seg.hook) lines.push(`- Mở đầu video là hook: "${seg.hook}".`);
   if (seg.reason) lines.push(`- Lý do đoạn này được chọn: ${seg.reason}`);
+  // Footage thô: bàn giao cho phiên dựng biết đoạn này nhắm ai và còn rủi ro gì phải xử lý
+  if (seg.review) {
+    const r = seg.review;
+    lines.push(
+      `- Đoạn lọc từ footage thô quay ngoài đường (không kịch bản). Điểm: hợp TA ${r.audience}/10, ` +
+        `đúng định hướng ${r.direction}/10, giá trị nội dung ${r.value}/10.`,
+    );
+    if (audience) lines.push(`- Khán giả mục tiêu: ${audience}`);
+    if (r.risks.length) {
+      lines.push(
+        `- PHẢI xử lý trước khi xuất (che/cắt/bỏ, không được để lọt): ${r.risks.join("; ")}`,
+      );
+    }
+  }
   return lines.join("\n");
 }
 

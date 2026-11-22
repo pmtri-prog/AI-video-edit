@@ -8,21 +8,28 @@ import {
   Clapperboard,
   Coins,
   Film,
+  Hourglass,
+  Lightbulb,
   ListVideo,
   MessagesSquare,
   Play,
+  Send,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  getChannelStats,
   getChatSessions,
+  getContentList,
   getJobs,
   getOverview,
   getProjects,
   getUsageByModel,
   getUsageTimeline,
+  type ChannelVideo,
   type ChatSession,
+  type ContentItem,
   type Job,
   type Overview,
   type ProjectSummary,
@@ -133,6 +140,10 @@ export default function DashboardPage() {
   const [jobs, setJobs] = useState<Job[] | null>(null);
   const [sessions, setSessions] = useState<ChatSession[] | null>(null);
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
+  // Hàng "Kênh nội dung": video đăng/chưa đăng lấy từ Chỉ số kênh, idea lấy
+  // từ Content đa kênh. Tải hỏng thì coi như rỗng - ô vẫn hiện, không treo.
+  const [channelVideos, setChannelVideos] = useState<ChannelVideo[] | null>(null);
+  const [contentItems, setContentItems] = useState<ContentItem[] | null>(null);
 
   const loadOverview = useCallback(async () => {
     try {
@@ -168,6 +179,12 @@ export default function DashboardPage() {
     getProjects()
       .then(setProjects)
       .catch(() => setProjects([]));
+    getChannelStats()
+      .then((d) => setChannelVideos(d.videos))
+      .catch(() => setChannelVideos([]));
+    getContentList()
+      .then((d) => setContentItems(d.items))
+      .catch(() => setContentItems([]));
   }, [loadOverview, loadJobs, loadSessions, resyncTick]);
 
   // Đổi bộ lọc (ngày / loại project) → refetch timeline của card
@@ -365,6 +382,19 @@ export default function DashboardPage() {
   const doneProjects = (projects ?? []).filter((p) => p.status === "done").length;
   const exportedProjects = (projects ?? []).filter((p) => p.output).length;
 
+  const postedVideos = (channelVideos ?? []).filter((v) => v.status === "posted");
+  const readyVideos = (channelVideos ?? []).filter((v) => v.status === "ready").length;
+  // Idea = content chưa đăng ở kênh nào + video Chỉ số kênh còn ở trạng thái idea
+  const contentIdeas = (contentItems ?? []).filter(
+    (c) => !Object.values(c.variants).some((v) => v?.status === "posted")
+  ).length;
+  const channelIdeas = (channelVideos ?? []).filter((v) => v.status === "idea").length;
+  const lastPostedAt = postedVideos
+    .map((v) => v.postedAt)
+    .filter((d): d is string => !!d)
+    .sort()
+    .at(-1);
+
   const todayKey = localDayKey(new Date());
   const todayJobs = (jobs ?? []).filter(
     (j) => localDayKey(new Date(j.createdAt)) === todayKey
@@ -440,6 +470,47 @@ export default function DashboardPage() {
           </ul>
         </Banner>
       )}
+
+      {/* Hàng 0 - kênh nội dung: việc đăng bài là thứ người dùng theo dõi hằng ngày */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {channelVideos === null ? (
+          <Skeleton className={TILE_SKELETON} />
+        ) : (
+          <StatTile
+            icon={Send}
+            value={String(postedVideos.length)}
+            label={t("dash.videos-posted")}
+            sub={
+              lastPostedAt
+                ? tf("dash.last-posted", { date: lastPostedAt.split("-").reverse().slice(0, 2).join("/") })
+                : t("dash.none-posted")
+            }
+            href="/channel-stats"
+          />
+        )}
+        {channelVideos === null ? (
+          <Skeleton className={TILE_SKELETON} />
+        ) : (
+          <StatTile
+            icon={Hourglass}
+            value={String(readyVideos)}
+            label={t("dash.videos-unposted")}
+            sub={t("dash.videos-unposted-sub")}
+            href="/channel-stats"
+          />
+        )}
+        {channelVideos === null || contentItems === null ? (
+          <Skeleton className={TILE_SKELETON} />
+        ) : (
+          <StatTile
+            icon={Lightbulb}
+            value={String(contentIdeas + channelIdeas)}
+            label={t("dash.ideas")}
+            sub={t("dash.ideas-sub")}
+            href="/content"
+          />
+        )}
+      </div>
 
       {/* Hàng 1 - 5 stat tile. Số liệu cùng loại thì cùng hình dạng: "hàng chờ"
           trước đây là một card riêng ở hàng khác với cỡ chữ khác. */}

@@ -36,12 +36,14 @@ export const MODE_LABEL: Record<AutoCutMode, string> = {
   time: "autocut.mode.time",
   ai: "autocut.mode.ai",
   prompt: "autocut.mode.prompt",
+  raw: "autocut.mode.raw",
 };
 
 export const MODE_DESC: Record<AutoCutMode, string> = {
   time: "autocut.mode.time-desc",
   ai: "autocut.mode.ai-desc",
   prompt: "autocut.mode.prompt-desc",
+  raw: "autocut.mode.raw-desc",
 };
 
 export const LAYOUT_LABEL: Record<AutoCutLayout, string> = {

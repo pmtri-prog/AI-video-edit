@@ -27,8 +27,10 @@ import projectsRouter from "./routes/projects.js";
 import jobsRouter from "./routes/jobs.js";
 import skillsRouter from "./routes/skills.js";
 import sfxRouter from "./routes/sfx.js";
+import channelStatsRouter from "./routes/channelStats.js";
 import musicRouter from "./routes/music.js";
 import mediaLibraryRouter from "./routes/mediaLibrary.js";
+import contentRouter from "./routes/content.js";
 import assetsRouter from "./routes/assets.js";
 import chatRouter from "./routes/chat.js";
 import promptsRouter from "./routes/prompts.js";
@@ -228,8 +230,10 @@ app.use("/api/brand-logos", brandLogosRouter); // logo brand: có sẵn hoặc t
 app.use("/api/jobs", jobsRouter);
 app.use("/api/skills", skillsRouter);
 app.use("/api/sfx", sfxRouter);
+app.use("/api/channel-stats", channelStatsRouter); // chỉ số kênh sau khi đăng
 app.use("/api/music", musicRouter);
 app.use("/api/media-library", mediaLibraryRouter);
+app.use("/api/content", contentRouter);
 app.use("/api/assets", assetsRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/prompts", promptsRouter);

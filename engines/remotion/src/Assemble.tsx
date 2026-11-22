@@ -7,7 +7,7 @@ import {
 import { CaptionTrack } from "./components/CaptionTrack";
 import { HighlightTrack } from "./components/HighlightTrack";
 import { InsertTrack } from "./components/InsertTrack";
-import { MusicTrack } from "./components/MusicTrack";
+import { MusicSectionsTrack, MusicTrack } from "./components/MusicTrack";
 import { SceneClip } from "./components/SceneClip";
 import { SfxTrack } from "./components/SfxTrack";
 import { SubtitleTrack } from "./components/SubtitleTrack";
@@ -120,6 +120,7 @@ export const Assemble: React.FC<Manifest> = (manifest) => {
 
       {/* Nhạc nền loop + auto-ducking theo speech ranges */}
       {audio.music ? <MusicTrack music={audio.music} /> : null}
+      {audio.musicSections.length > 0 ? <MusicSectionsTrack sections={audio.musicSections} /> : null}
 
       {/* Logo thương hiệu - LỚP TRÊN CÙNG, sau cả phụ đề: logo đóng góc mà bị
           một overlay nào đó đè lên thì coi như không có. */}

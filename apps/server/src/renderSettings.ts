@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
-import { childEnv, paths } from "./config.js";
+import { childEnv, paths, repoRoot } from "./config.js";
 import { ensureDir } from "./util.js";
 
 const execFileAsync = promisify(execFile);
@@ -337,9 +337,21 @@ export function remotionGlArgs(): string[] {
   return process.platform === "linux" ? ["--gl", "angle-egl"] : ["--gl", "angle"];
 }
 
+/**
+ * Compositor của Remotion 4.0.500 build cho macOS 15: máy cũ hơn chết ngay khi render với
+ * "Symbol not found: _AVCaptureDeviceTypeContinuityCamera". Có thư mục compositor bản cũ
+ * (.runtime/bin/remotion-compositor-macos13, Remotion 4.0.430 chạy được trên macOS 13) thì
+ * trỏ Remotion vào đó; máy khác không có thư mục này nên không bị ảnh hưởng.
+ */
+export function remotionBinariesArgs(): string[] {
+  if (process.platform !== "darwin" || parseInt(os.release(), 10) >= 24) return [];
+  const dir = path.join(repoRoot, ".runtime", "bin", "remotion-compositor-macos13");
+  return fs.existsSync(dir) ? ["--binaries-directory", dir] : [];
+}
+
 /** Bộ argv tăng tốc đầy đủ cho `remotion render` */
 export function remotionSpeedArgs(): string[] {
-  return [...remotionConcurrencyArgs(), ...remotionGlArgs()];
+  return [...remotionConcurrencyArgs(), ...remotionGlArgs(), ...remotionBinariesArgs()];
 }
 
 /** Số job queue chạy đồng thời - queue đọc mỗi tick nên đổi là ăn ngay */

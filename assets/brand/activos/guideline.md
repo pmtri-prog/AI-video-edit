@@ -1,11 +1,13 @@
-# ActivOS — Brand guideline cho bot tạo video TikTok
+# TryOh! — Brand guideline cho bot tạo video TikTok
 
 > **File này là nguồn sự thật.** Skill `activos-tiktok` đọc file này trước mỗi lần dựng. Muốn đổi luật thì sửa ở đây, không cần sửa skill. Vị trí: `assets/brand/activos/guideline.md`.
 
-> **English summary.** Brand rules for an AI video generator producing TikTok videos for Phạm Minh Trí's personal channel, which sells ActivOS Events to agencies and FMCG/beauty brand managers. Format: vertical 9:16. Story order is always Wow → Consent → Engage, coloured peach / sky / mint. Fonts: Archivo (width 62%, weight 800) for headlines, Be Vietnam Pro for subtitles, JetBrains Mono for labels. No emoji, no all-caps, no gradients, no white text on pastel. Use only real footage with no recognisable consumer faces. Every number carries a date and a place. Never mention costs, margins or prices.
+> **English summary.** Brand rules for an AI video generator producing TikTok videos for Phạm Minh Trí's personal channel, which sells TryOh! to agencies and FMCG/beauty brand managers. Format: vertical 9:16. Story order is always Wow → Consent → Engage, coloured peach / sky / mint. Fonts: Archivo (width 62%, weight 800) for headlines, Be Vietnam Pro for subtitles, JetBrains Mono for labels. No emoji, no all-caps, no gradients, no white text on pastel. Use only real footage with no recognisable consumer faces. Every number carries a date and a place. Never mention costs, margins or prices. Since 14/11/2026 the only brand on the channel is TryOh!; ActivOS no longer appears on screen or in speech.
 
 Nguồn: quy chuẩn thương hiệu ActivOS (chốt 05/11/2026) và doc "Kế hoạch TikTok cá nhân của Trí" (mục 2, 5, 5B, 9, 12, 13 — bản 12/11/2026).
 Các thông số riêng cho định dạng video (cỡ chữ, vùng an toàn) do mình thêm vào, quy chuẩn gốc chưa có. Đã duyệt dùng cố định ngày 12/11/2026.
+
+> **Cập nhật 14/11/2026: kênh thống nhất một tên là TryOh!.** ActivOS không còn xuất hiện trên video, lời thoại, caption. Tên thư mục và id kỹ thuật (`assets/brand/activos/`, skill `activos-tiktok`, Style Design `activos`) giữ nguyên để không gãy hệ thống, người xem không thấy chúng.
 
 > **Cập nhật 12/11/2026: video dùng nhận diện TryOh! v1.0.** Màu và font lấy từ bộ nhận diện TryOh trong `assets/brand/tryoh/` (bảng màu `03-mau/mau-tryoh.txt`, font `04-chu/font-tryoh.txt`). Mục 3 (Màu), mục 4 (Chữ: font) và màu 3 vạch ở mục 5 bên dưới là bản ActivOS cũ, **không còn dùng cho phần nhìn**; thông số thay thế nằm ở skill `activos-tiktok` mục 2–3. Mọi luật còn lại (lời thoại, từ cấm, số liệu, tên khách, hình ảnh thật, không lộ mặt, công thức Wow → Consent → Engage) giữ nguyên.
 
@@ -13,9 +15,9 @@ Các thông số riêng cho định dạng video (cỡ chữ, vùng an toàn) do
 
 ## 1. Kênh này là gì
 
-- **Người nói:** Phạm Minh Trí, founder ActivOS. Đã làm phần cứng, làm D2C, làm marketing, rồi tự vibe code để làm máy cho sự kiện.
+- **Người nói:** Phạm Minh Trí, founder TryOh!. Đã làm phần cứng, làm D2C, làm marketing, rồi tự vibe code để làm máy cho sự kiện.
 - **Định vị:** Tech experience & data. Câu nói trên kênh: *"Mình làm trải nghiệm công nghệ ở sự kiện, và biến nó thành dữ liệu thật cho nhãn."*
-- **Mục tiêu duy nhất:** bán ActivOS Events. View và follow chỉ là phương tiện.
+- **Mục tiêu duy nhất:** bán TryOh! cho agency và nhãn hàng. View và follow chỉ là phương tiện.
 - **Người xem:**
   - người nghĩ ý tưởng ở agency (creative, planner);
   - người chạy sự kiện ở agency (AM, producer);
@@ -26,12 +28,12 @@ Các thông số riêng cho định dạng video (cỡ chữ, vùng an toàn) do
 
 | Đúng | Sai |
 |---|---|
-| ActivOS | Activos, ACTIVOS, Activ OS, Activ-OS |
-| ActivOS Events | "thuê thiết bị", "activation trọn gói" |
-| Smart Booth · Smart Sampling · Snap & Sample | "ActivOS Smart Booth" (không thêm ActivOS phía trước) |
+| TryOh! (có dấu chấm than) | Tryoh, TRYOH, Try Oh, TryOh không có "!" |
+| Smart Booth · Smart Sampling · Snap & Sample | "thuê thiết bị", "activation trọn gói" |
 | Wow · Consent · Engage (tiếng Anh, viết hoa chữ đầu) | WOW, wow |
 
-- **TryOh!:** chỉ dùng khi nói về máy đặt ở chung cư, quán cà phê. Không dùng "Thử là Ồ!".
+- **TryOh!:** tên duy nhất của kênh, dùng cho mọi thứ: sự kiện, máy đặt ở chung cư, quán cà phê. Không dùng "Thử là Ồ!".
+- **ActivOS:** không xuất hiện trên video, lời thoại hay caption (Trí chốt 14/11/2026).
 - **Snap & Sample:** sắp ra mắt. Hình nào dùng phải ghi "Hình minh hoạ".
 - **SiliconZ:** không xuất hiện trên video.
 
@@ -97,11 +99,11 @@ File font nằm sẵn trong `assets/styles/files/activos/`: `Archivo-VF.ttf` (bi
 
 ### Logo
 - **Không có end card, không đóng logo góc.** Góc trên dành cho 3 vạch màu. Style Design cố ý để trống logo để hệ thống không tự đóng logo góc.
-- Dùng file gốc trong `assets/brand/activos/`, chép vào `assets/` của project rồi mới dùng. Không gõ lại chữ ActivOS bằng font khác.
-  - `activos-ngang.svg` cho nền sáng, `activos-ngang-nen-toi.svg` cho nền đen.
+- Dùng file gốc trong `assets/brand/tryoh/01-logo/`, chép vào `assets/` của project rồi mới dùng. Không gõ lại chữ TryOh! bằng font khác.
+  - `tryoh-logo-mau.svg` hoặc `tryoh-logo-den.svg` cho nền sáng, `tryoh-logo-tren-nen-toi.svg` cho nền đen.
 - Không kéo méo, không đổi màu, không đổi thứ tự vạch, không thêm bóng, viền.
 - Chừa khoảng trống quanh logo tối thiểu bằng nửa chiều cao chữ A.
-- Logo nhãn chỉ xuất hiện khi nhãn đã đồng ý. Khi đứng cạnh nhau: logo nhãn `×` ActivOS, cao bằng nhau.
+- Logo nhãn chỉ xuất hiện khi nhãn đã đồng ý. Khi đứng cạnh nhau: logo nhãn `×` TryOh!, cao bằng nhau.
 
 ## 6. Công thức một video
 
@@ -113,11 +115,15 @@ File font nằm sẵn trong `assets/styles/files/activos/`: `Archivo-VF.ttf` (bi
 | 40–55 | Engage | Nhãn chăm lại người đã đồng ý. Một con số có ngày và nơi |
 | 55–60 | Câu hỏi | Một câu hỏi thật cho người trong nghề, video kết ở câu này (không end card) |
 
+**Mỗi kịch bản có một câu khẳng định gây bất ngờ, và video mở bằng chính câu đó** (Trí chốt 16/11/2026). Là một câu khẳng định nghe như sai hoặc nhỏ tới mức khó tin ("Cấp 1 và cấp 2 chỉ khác nhau đúng 5 giây"), không phải câu hỏi hay tên chủ đề. Câu hỏi đặt sau, vẫn trong 10 giây đầu. Bằng chứng: cùng mở bằng ảnh sân khấu, câu khẳng định giữ 58% người xem ở giây 2, câu hỏi giữ 50%.
+
 **Một video = một ý, một con số.** Có hai ý thì cắt thành hai video, đặt tên "Phần 1" và "Phần 2". Phần 1 kết bằng một câu hỏi bỏ ngỏ dẫn sang phần 2, để người xem vào trang kênh tìm. Không bỏ bớt ý thứ hai cho vừa một video. (Trí duyệt 14/11/2026)
 
 **Caption khi đăng:** một câu tóm tắt đúng câu hook, rồi bộ hashtag cố định `#tryoh #learnontiktok #sukien #sampling`, thêm tối đa 2 tag theo nội dung. (Trí duyệt 14/11/2026)
 
 **Lịch đăng (đang thử từ 14/11/2026):** tối đa 2 video một ngày, cách nhau ít nhất 6–8 tiếng để hai video không giành view của nhau. Video thứ hai đăng chiều tối, thử khung 19:00–21:00 (khung kênh Khánh LifeTech hay đăng). Chờ video trước chạy ổn rồi mới đăng video sau.
+
+**Nơi đăng (Trí chốt 16/11/2026):** video ngắn kiểu này (nói, giải thích, chuỗi BCG) chỉ đăng TikTok và YouTube Shorts. **Không đăng lên Facebook cá nhân của Trí nữa**: ít view, và làm loãng trang cá nhân. Facebook đi hướng khác: chỉ chia sẻ những thứ wow, bằng hình ảnh (ảnh, clip thật ở sự kiện). Hướng cụ thể Trí sẽ chốt sau, đừng tự đề xuất đăng video ngắn lên Facebook.
 
 ### 6C. Nguồn gốc các luật ở mục 6–6B
 
@@ -129,7 +135,7 @@ Học từ kênh Khánh LifeTech: các bài hỏi đáp, collab và bám thời 
 
 - **Hỏi đáp hai người.** Một người hỏi (bạn làm agency, nhân viên vận hành), Trí trả lời. Người hỏi đóng vai người xem, hỏi đúng câu người trong nghề hay thắc mắc. Người hỏi lộ mặt được vì là người cùng làm, không phải người tiêu dùng, nhưng phải đồng ý trước. Tên và chức danh của họ chỉ lên màn hình khi họ đồng ý.
 - **Collab.** Quay cùng người trong ngành sự kiện, agency, hoặc creator đã chạy booth. Luật tên khách ở mục 9 vẫn giữ: nhãn hay agency của khách chưa duyệt thì không nêu tên.
-- **Bám thời sự.** Ra video đúng lúc có chuyện: mùa TikTok Beauty Fest, Food Fest, TikTok Awards, sự kiện lớn của ngành. Tin về luật dữ liệu cá nhân chỉ được nói sau khi đã soát luật (mục 10). Câu hook vẫn theo một trong 7 công thức của skill `activos-tiktok`.
+- **Bám thời sự.** Ra video đúng lúc có chuyện: mùa TikTok Beauty Fest, Food Fest, TikTok Awards, sự kiện lớn của ngành. Tin về luật dữ liệu cá nhân chỉ được nói sau khi đã soát luật (mục 10). Câu hook theo một trong các công thức ở skill `activos-tiktok` mục 6.1. Hội chợ, triển lãm đang diễn ra gần (vd Vietnam Foodexpo ở SECC quận 7) cũng là thời sự: đưa "lỗ hổng kinh tế" hoặc một số tiền thật thấy tại sự kiện (vd 200k) lên câu hook rồi mới giải thích, bìa dùng ảnh thật của nơi đó. Không bao giờ là giá của TryOh. (Trí duyệt 14/11/2026)
 
 ## 7. Giọng nói và lời thoại
 
@@ -165,11 +171,12 @@ Học từ kênh Khánh LifeTech: các bài hỏi đáp, collab và bám thời 
 
 - **Mọi con số có ngày và nơi.** Chỉ dùng số đã có trên activos.vn, báo cáo đã gửi nhãn, hoặc số đã đánh dấu "đã xác nhận" trong bảng 12.3 của doc kế hoạch.
 - Sự kiện được dùng trong mạch hiện tại. Tên nào chưa được duyệt thì bot không tự nêu:
-  - **TikTok Beauty Fest:** sampling partner, hơn 5.000 mẫu một ngày.
+  - **TikTok Beauty Fest:** sampling partner, 5.000–10.000 mẫu một ngày (Trí xác nhận số thật 14/11/2026; trước đó chỉ duyệt "hơn 5.000").
   - **TikTok Food Fest 2026:** sampling partner, máy chụp ảnh đặt cạnh máy phát mẫu.
   - **Dược Hậu Giang, Ngày hội Biofermin:** AEON Mall Bình Tân, 24–25/10/2026.
   - Còn lại nói theo ngành: "một nhãn chăm sóc da đa quốc gia", "một agency".
 - Với nhãn dược và thực phẩm bảo vệ sức khỏe: **không nói công dụng sản phẩm**.
+- **RED FLAG: thông tin tiêu cực không bao giờ lấy brand thật làm ví dụ** (Trí chốt 16/11/2026). Tiêu cực gồm: sai luật, vi phạm dữ liệu, lỗ hổng, game hunter, thất thoát ngân sách, làm sai, kém hiệu quả. Trong đoạn nói về những chuyện này, không được có tên brand, logo, ảnh hay video sự kiện của brand, nhãn nguồn (credit), và cũng không được có trên bìa hay caption. Đặt cạnh nhau là người xem hiểu brand đó làm sai. Ví dụ tiêu cực thì nói chung chung ("một số sự kiện", "nhiều nhãn"). Tên và cảnh của brand chỉ dùng ở câu tích cực: TryOh là đối tác, kết quả tốt, cách làm đúng. Đã xảy ra ở video 6 v4: câu "không phải thu data nào cũng đúng luật" chạy trên sân khấu Ngày hội Biofermin, bìa ghi "AEON Bình Tân · Dữ liệu đúng luật". Đã phải gỡ hết DHG.
 
 ## 10. Không bao giờ đưa lên video
 
@@ -184,7 +191,7 @@ Học từ kênh Khánh LifeTech: các bài hỏi đáp, collab và bám thời 
 - [ ] 3 giây đầu là cảnh thật hoặc con số, không phải mặt người nói
 - [ ] Một ý, một con số; con số có ngày và nơi
 - [ ] Thuật ngữ BCG có câu "theo BCG và Google" và thẻ nguồn đúng năm
-- [ ] Tên viết đúng: ActivOS, Smart Booth, Smart Sampling, Snap & Sample
+- [ ] Tên viết đúng: TryOh!, Smart Booth, Smart Sampling, Snap & Sample
 - [ ] Không emoji, không viết hoa toàn bộ, không gradient, không chữ trắng trên pastel
 - [ ] Màu đúng lớp: peach = Wow / cấp 1, sky = Consent / cấp 2, mint = Engage / cấp 3
 - [ ] Không lộ mặt, tên, số điện thoại người tiêu dùng

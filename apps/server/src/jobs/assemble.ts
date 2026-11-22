@@ -274,6 +274,11 @@ export async function runAssemble(ctx: JobCtx): Promise<void> {
     if (music && typeof music.file === "string" && music.file) {
       music.file = stage(music.file);
     }
+    // Nhạc theo đoạn (bước Âm thanh) - mỗi đoạn một file
+    const sections = (props.audio as { musicSections?: { file?: unknown }[] }).musicSections ?? [];
+    for (const sec of sections) {
+      if (typeof sec.file === "string" && sec.file) sec.file = stage(sec.file);
+    }
   }
 
   // ---- Minh họa chèn (Bước 2 luồng duyệt từng bước) ----

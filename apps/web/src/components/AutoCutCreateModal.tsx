@@ -55,7 +55,7 @@ import {
 import { formatBytes } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 
-const MODES: AutoCutMode[] = ["time", "ai", "prompt"];
+const MODES: AutoCutMode[] = ["time", "ai", "prompt", "raw"];
 const ASPECTS: AutoCutAspect[] = ["keep", "9:16", "16:9", "1:1", "4:5"];
 const LAYOUTS: AutoCutLayout[] = ["auto", "crop", "fit"];
 const BACKGROUNDS: AutoCutBackground[] = ["gemini", "blur", "style"];
@@ -141,6 +141,9 @@ export function AutoCutCreateModal({
   const [minSec, setMinSec] = useState(String(AUTO_CUT_DEFAULT_PARAMS.minSec));
   const [maxSec, setMaxSec] = useState(String(AUTO_CUT_DEFAULT_PARAMS.maxSec));
   const [request, setRequest] = useState("");
+  // mode raw: TA + định hướng kênh - server nhớ, điền sẵn khi chọn mode này
+  const [audience, setAudience] = useState("");
+  const [direction, setDirection] = useState("");
 
   // ---- Đầu ra ----
   const [aspect, setAspect] = useState<AutoCutAspect>("9:16");
@@ -195,6 +198,8 @@ export function AutoCutCreateModal({
         if (p.count !== undefined) setCount(String(p.count));
         if (p.minSec !== undefined) setMinSec(String(p.minSec));
         if (p.maxSec !== undefined) setMaxSec(String(p.maxSec));
+        if (p.audience !== undefined) setAudience(p.audience);
+        if (p.direction !== undefined) setDirection(p.direction);
         setAspect(d.output.aspect);
         setLayout(d.output.layout);
         setBackground(d.output.background);
@@ -244,8 +249,29 @@ export function AutoCutCreateModal({
     }
   }
 
-  // mode ai/prompt phải đọc được lời thoại mới chọn được đoạn → ép bật transcribe
-  const transcribeLocked = mode === "ai" || mode === "prompt";
+  /**
+   * Chọn mode raw: nạp số đoạn/độ dài + TA/định hướng ĐÃ NHỚ của riêng mode này
+   * (số của mode ai không hợp footage thô). Ô TA đã có chữ thì không đè.
+   */
+  function selectMode(m: AutoCutMode) {
+    setMode(m);
+    if (m !== "raw" || audience.trim()) return;
+    getAutoCutDefaults("raw")
+      .then((d) => {
+        const p = d.params;
+        if (p.count !== undefined) setCount(String(p.count));
+        if (p.minSec !== undefined) setMinSec(String(p.minSec));
+        if (p.maxSec !== undefined) setMaxSec(String(p.maxSec));
+        setAudience((cur) => cur || p.audience || "");
+        setDirection((cur) => cur || p.direction || "");
+      })
+      .catch(() => {
+        /* để trống: server tự dùng TA/định hướng mặc định */
+      });
+  }
+
+  // mode ai/prompt/raw phải đọc được lời thoại mới chọn được đoạn → ép bật transcribe
+  const transcribeLocked = mode !== "time";
   useEffect(() => {
     if (transcribeLocked) setTranscribe(true);
   }, [transcribeLocked]);
@@ -265,9 +291,11 @@ export function AutoCutCreateModal({
       minSec: Number(minSec) || AUTO_CUT_DEFAULT_PARAMS.minSec,
       maxSec: Number(maxSec) || AUTO_CUT_DEFAULT_PARAMS.maxSec,
     };
-    return mode === "prompt"
-      ? { ...common, request: request.trim() }
-      : common;
+    if (mode === "prompt") return { ...common, request: request.trim() };
+    if (mode === "raw") {
+      return { ...common, audience: audience.trim(), direction: direction.trim() };
+    }
+    return common;
   }
 
   async function onCreate() {
@@ -447,7 +475,7 @@ export function AutoCutCreateModal({
               disabled={creating}
               title={t(MODE_LABEL[m])}
               description={t(MODE_DESC[m])}
-              onSelect={() => setMode(m)}
+              onSelect={() => selectMode(m)}
             />
           ))}
         </OptionCardGroup>
@@ -489,6 +517,38 @@ export function AutoCutCreateModal({
                   onChange={(e) => setRequest(e.target.value)}
                 />
               </Field>
+            )}
+            {mode === "raw" && (
+              <>
+                <Field
+                  label={t("autocut.audience")}
+                  htmlFor="autocut-audience"
+                  hint={t("autocut.audience-hint")}
+                >
+                  <textarea
+                    id="autocut-audience"
+                    className="input"
+                    rows={3}
+                    value={audience}
+                    disabled={creating}
+                    onChange={(e) => setAudience(e.target.value)}
+                  />
+                </Field>
+                <Field
+                  label={t("autocut.direction")}
+                  htmlFor="autocut-direction"
+                  hint={t("autocut.direction-hint")}
+                >
+                  <textarea
+                    id="autocut-direction"
+                    className="input"
+                    rows={3}
+                    value={direction}
+                    disabled={creating}
+                    onChange={(e) => setDirection(e.target.value)}
+                  />
+                </Field>
+              </>
             )}
             <div className="flex flex-wrap items-start gap-2">
               <NumField

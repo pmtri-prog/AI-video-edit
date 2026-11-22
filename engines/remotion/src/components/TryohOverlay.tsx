@@ -127,7 +127,8 @@ export const TryohOverlay: React.FC<{ tryoh: Tryoh; fps: number }> = ({ tryoh, f
   return (
     <AbsoluteFill style={{ fontFamily: BODY }}>
       <style>{tryohFontFaceCss}</style>
-      <LevelBar levels={tryoh.levels} fps={fps} />
+      {/* Thanh 3 cấp chỉ có nghĩa với series có lớp Wow/Consent/Engage; video không khai levels thì không hiện */}
+      {tryoh.levels.length > 0 ? <LevelBar levels={tryoh.levels} fps={fps} /> : null}
       {tryoh.cards.map((card, i) => (
         <Sequence key={`card-${i}`} from={card.from} durationInFrames={card.durationInFrames}>
           <Card card={card} />

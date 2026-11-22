@@ -450,6 +450,8 @@ export interface ProjectMeta {
     sfx?: SfxMeta[];
     /** Nhạc nền auto-ducking (xem skill background-music) - null/thiếu = không có nhạc */
     music?: MusicMeta | null;
+    /** Nhạc theo đoạn (bước Âm thanh) - mỗi đoạn một bài, from/to tính bằng GIÂY */
+    musicSections?: (MusicMeta & { from: number; to: number; crossfade?: number })[];
     [key: string]: unknown;
   };
   output?: string | null;
@@ -481,8 +483,31 @@ export interface ProjectSummary {
    * hiểu nó ở đâu ra.
    */
   textToVideoId: string | null;
+  /**
+   * Tiến độ luồng 4 lần duyệt (chỉ số cổng, đếm từ 0) - null = project không đi
+   * luồng này. Có trong SUMMARY để danh sách project hiện được đang ở bước nào.
+   */
+  steps: StepGates | null;
   createdAt: string | null;
   updatedAt: string;
+}
+
+/** Cổng nào đã duyệt / cần xem lại (vì cổng trước bị mở lại) - lưu ở meta.stepGates */
+export interface StepGates {
+  approved: number[];
+  stale: number[];
+}
+
+export const STEP_GATE_COUNT = 4;
+
+export function normStepGates(raw: unknown): StepGates | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const ids = (v: unknown) =>
+    Array.isArray(v)
+      ? [...new Set(v.filter((x): x is number => Number.isInteger(x) && x >= 0 && x < STEP_GATE_COUNT))].sort()
+      : [];
+  return { approved: ids(r.approved), stale: ids(r.stale) };
 }
 
 /**
@@ -563,6 +588,7 @@ export function projectSummaryOf(id: string): ProjectSummary | null {
         typeof meta.textToVideoId === "string" && meta.textToVideoId
           ? meta.textToVideoId
           : null,
+      steps: normStepGates(meta.stepGates) ?? (meta.flow === "steps" ? { approved: [], stale: [] } : null),
       createdAt: typeof meta.createdAt === "string" && meta.createdAt ? meta.createdAt : null,
       updatedAt,
     };

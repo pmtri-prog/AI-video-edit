@@ -14,7 +14,7 @@ import {
 } from "../meta.js";
 import { remotionGlArgs } from "../renderSettings.js";
 import { getStyle, styleExists } from "../styles.js";
-import { HttpError, ensureDir, execFileCapture, remotionCli } from "../util.js";
+import { HttpError, ensureDir, execFileCapture, fileKind, remotionCli } from "../util.js";
 import type { ImageAspect } from "../imageMeta.js";
 
 /**
@@ -122,7 +122,10 @@ router.post("/:id/thumbnail", async (req, res) => {
   try {
     await execFileCapture(
       "ffmpeg",
-      ["-y", "-ss", String(frameAt), "-i", videoAbs, "-frames:v", "1", "-q:v", "2", frameAbs],
+      // Ảnh sự kiện (jpg/png) chỉ có một khung - tua -ss là ffmpeg không ra gì
+      fileKind(videoAbs) === "image"
+        ? ["-y", "-i", videoAbs, "-frames:v", "1", "-q:v", "2", frameAbs]
+        : ["-y", "-ss", String(frameAt), "-i", videoAbs, "-frames:v", "1", "-q:v", "2", frameAbs],
       { timeoutMs: 60_000 },
     );
   } catch (err) {

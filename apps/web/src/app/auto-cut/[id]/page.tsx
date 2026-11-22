@@ -31,6 +31,7 @@
  */
 
 import {
+  AlertTriangle,
   ArrowLeft,
   Clapperboard,
   ExternalLink,
@@ -44,6 +45,7 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { Badge, type BadgeTone } from "@/components/Badge";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -59,6 +61,7 @@ import {
   type AutoCutMeta,
   type AutoCutSegment,
   type AutoCutSegmentPatch,
+  type AutoCutVerdict,
   type Brief,
   type Job,
 } from "@/lib/api";
@@ -94,6 +97,13 @@ import { BriefFields, DEFAULT_BRIEF } from "@/components/BriefFields";
 // một kiểu (xem chú thích trong lib/format.ts).
 import { clock, formatDateTime } from "@/lib/format";
 import { useT } from "@/lib/i18n";
+
+/** Kết luận lọc footage thô - nhãn PHÂN LOẠI nên không có chấm trạng thái */
+const VERDICT_TONE: Record<AutoCutVerdict, BadgeTone> = {
+  keep: "success",
+  maybe: "muted",
+  drop: "danger",
+};
 
 /** Gộp nhiều lần gõ phím thành một PATCH - không bắn request mỗi ký tự. */
 const PATCH_DEBOUNCE_MS = 700;
@@ -756,6 +766,12 @@ export default function AutoCutDetailPage() {
                       value={params_.request}
                     />
                   )}
+                  {params_.audience && (
+                    <ConfigRow label={t("autocut.audience")} value={params_.audience} />
+                  )}
+                  {params_.direction && (
+                    <ConfigRow label={t("autocut.direction")} value={params_.direction} />
+                  )}
                 </>
               )}
               <ConfigRow
@@ -919,6 +935,13 @@ export default function AutoCutDetailPage() {
                           <span className="font-mono text-meta text-[var(--text-muted)]">
                             {clock(s.start)} - {clock(s.end)} ({duration(s.end - s.start)})
                           </span>
+                          {s.review && (
+                            <Badge
+                              dot={false}
+                              tone={VERDICT_TONE[s.review.verdict]}
+                              label={t(`autocut.verdict.${s.review.verdict}`)}
+                            />
+                          )}
                           {typeof s.score === "number" && (
                             <span className="chip">
                               {tf("autocut.score", { score: s.score })}
@@ -953,7 +976,30 @@ export default function AutoCutDetailPage() {
                             lùi xuống tooltip.
                             break-anywhere: chữ tự do của AI có thể là một chuỗi
                             dài không khoảng trắng, đẩy toác cả cột. */}
-                        {(s.hook || s.reason) && (
+                        {/* Footage thô: lý do giữ/bỏ LÀ thứ người dùng cần đọc để
+                            duyệt, nên hiện thẳng cùng ba điểm và rủi ro, không
+                            giấu vào tooltip như mode ai. */}
+                        {s.review ? (
+                          <div className="flex flex-col gap-1 text-meta [overflow-wrap:anywhere]">
+                            <span className="text-[var(--text-muted)]">
+                              {tf("autocut.review-scores", {
+                                audience: s.review.audience,
+                                direction: s.review.direction,
+                                value: s.review.value,
+                              })}
+                            </span>
+                            {s.hook && <p className="line-clamp-2">“{s.hook}”</p>}
+                            {s.review.why && (
+                              <p className="text-[var(--text-muted)]">{s.review.why}</p>
+                            )}
+                            {s.review.risks.map((r) => (
+                              <p key={r} className="flex items-start gap-1 text-[var(--danger)]">
+                                <AlertTriangle size={13} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+                                {r}
+                              </p>
+                            ))}
+                          </div>
+                        ) : (s.hook || s.reason) && (
                           <p
                             title={s.reason || undefined}
                             className="line-clamp-2 text-meta text-[var(--text-muted)] [overflow-wrap:anywhere]"

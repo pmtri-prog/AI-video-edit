@@ -3,6 +3,8 @@
  * Web (6868) rewrites /api/* và /media/* sang backend (6869).
  */
 
+import type { StepGates } from "./stepGates";
+
 // ============ Types ============
 
 export interface HealthChecks {
@@ -35,6 +37,8 @@ export interface ProjectSummary {
    * một project lạ mọc ra mà không biết từ đâu.
    */
   textToVideoId: string | null;
+  /** Tiến độ luồng 4 lần duyệt - null = project không đi luồng này */
+  steps?: StepGates | null;
   /** Project cũ tạo trước khi có field này → null. */
   createdAt: string | null;
   updatedAt: string;
@@ -2220,6 +2224,66 @@ export const analyzeContentGate = (id: string) => post<ContentGateState>(`${cont
 export const saveContentDecision = (id: string, decision: Partial<ContentDecision>) =>
   jsonBody<ContentGateState>(contentPath(id), "PUT", { decision });
 
+/** Lưu cổng đã duyệt / cần xem lại (meta.stepGates) */
+export const saveStepGates = (id: string, gates: StepGates) =>
+  jsonBody<StepGates>(`/api/projects/${encodeURIComponent(id)}/steps/gates`, "PUT", gates);
+
+// ------------------------- Duyệt 3 · Âm thanh -------------------------
+
+export type SoundMode = "none" | "whole" | "sections";
+
+export interface SoundSection {
+  start: number;
+  end: number;
+  label: string;
+  /** File nhạc trong project, hoặc "library:<file>" khi gửi lên để chép từ thư viện */
+  file: string | null;
+}
+
+export interface SoundCue {
+  id: string;
+  at: number;
+  label: string;
+  /** Tên file trong assets/sound-effects/ */
+  file: string;
+  volume: number;
+  enabled: boolean;
+  source: "insert" | "card" | "user";
+}
+
+export interface SoundGate {
+  mode: SoundMode;
+  file: string | null;
+  volume: number;
+  duckVolume: number;
+  sections: SoundSection[];
+  cues: SoundCue[];
+  updatedAt: string | null;
+}
+
+export interface SoundState {
+  gate: SoundGate;
+  /** false = chưa lưu lần nào, gate đang là gợi ý của máy */
+  saved: boolean;
+  modes: SoundMode[];
+  durationSec: number;
+  /** value: đường dẫn trong project hoặc "library:<file>"; url: đường dẫn /media */
+  music: { value: string; label: string; tags: string[]; description: string; url: string }[];
+  sfx: IllustrateState["sfx"];
+  brief: { musicMode: string | null; sfxMode: string | null };
+}
+
+const soundPath = (id: string) => `/api/projects/${encodeURIComponent(id)}/steps/sound`;
+
+export const getSoundGate = (id: string) => request<SoundState>(soundPath(id));
+
+/** Lưu lựa chọn âm thanh - server ghi luôn vào timeline (audio.music / musicSections / sfx) */
+export const saveSoundGate = (id: string, gate: Partial<SoundGate>) =>
+  jsonBody<SoundState>(soundPath(id), "PUT", gate);
+
+/** Gợi ý lại đoạn nhạc (theo câu móc + từng ý) và điểm SFX (theo cảnh chèn + thẻ chữ) */
+export const suggestSound = (id: string) => post<SoundState>(`${soundPath(id)}/suggest`);
+
 /** Sóng âm + chữ của video nguồn cho timeline cắt tay (Bước 1). peaks: 0..1, `peaksPerSec` điểm mỗi giây. */
 export interface TrimWaveform {
   source: string;
@@ -2491,8 +2555,11 @@ export type AutoCutStatus =
   | "done"
   | "failed";
 
-/** time = chia đều theo phút; ai = AI chọn đoạn hay; prompt = cắt theo yêu cầu. */
-export type AutoCutMode = "time" | "ai" | "prompt";
+/**
+ * time = chia đều theo phút; ai = AI chọn đoạn hay; prompt = cắt theo yêu cầu;
+ * raw = lọc footage thô quay ngoài đường, chấm theo TA + định hướng + giá trị.
+ */
+export type AutoCutMode = "time" | "ai" | "prompt" | "raw";
 
 export type AutoCutAspect = "keep" | "9:16" | "16:9" | "1:1" | "4:5";
 
@@ -2522,6 +2589,21 @@ export interface AutoCutParams {
   maxSec?: number;
   /** mode "prompt": yêu cầu bằng lời của người dùng. */
   request?: string;
+  /** mode "raw": khán giả mục tiêu và định hướng kênh - server nhớ giữa các phiên. */
+  audience?: string;
+  direction?: string;
+}
+
+export type AutoCutVerdict = "keep" | "maybe" | "drop";
+
+/** Đánh giá footage thô của một đoạn - điểm 1-10. */
+export interface AutoCutReview {
+  verdict: AutoCutVerdict;
+  audience: number;
+  direction: number;
+  value: number;
+  why: string;
+  risks: string[];
 }
 
 export interface AutoCutOutput {
@@ -2542,8 +2624,10 @@ export interface AutoCutSegment {
   title: string;
   hook?: string;
   reason?: string;
-  /** 1-10 - chỉ có ở mode ai/prompt. */
+  /** 1-10 - chỉ có ở mode ai/prompt/raw. */
   score?: number;
+  /** Chỉ có ở mode raw. */
+  review?: AutoCutReview;
   selected: boolean;
   /** Có sau bước cut - id Videos Project con đã tạo. */
   projectId?: string;
@@ -2641,8 +2725,11 @@ export interface AutoCutDefaults {
   autoEdit: boolean;
 }
 
-export const getAutoCutDefaults = () =>
-  request<AutoCutDefaults>("/api/auto-cut/defaults");
+/** `mode` = lấy cấu hình nhớ của riêng mode đó (vd TA/định hướng của mode raw). */
+export const getAutoCutDefaults = (mode?: AutoCutMode) =>
+  request<AutoCutDefaults>(
+    `/api/auto-cut/defaults${mode ? `?mode=${encodeURIComponent(mode)}` : ""}`
+  );
 
 export const createAutoCut = (input: {
   /** Bỏ trống → server đặt theo tên file nguồn. */
@@ -3886,3 +3973,116 @@ export async function dubPreviewTranslateVideo(
     overflowed: res.headers.get("x-dub-overflowed") === "1",
   };
 }
+
+// ============ Content đa kênh (một câu chuyện → LinkedIn → Facebook → TikTok) ============
+
+export type ContentChannel = "linkedin" | "facebook" | "tiktok";
+export const CONTENT_CHANNELS: ContentChannel[] = ["linkedin", "facebook", "tiktok"];
+export type ContentVariantStatus = "draft" | "approved" | "posted";
+
+export interface ContentVariant {
+  text: string;
+  caption?: string;
+  sceneSheet?: string;
+  status: ContentVariantStatus;
+  postUrl: string | null;
+  projectId?: string | null;
+  updatedAt: string;
+}
+
+export interface ContentMedia {
+  id: string;
+  title: string;
+  event: string;
+  viewUrl: string | null;
+  localPath: string | null;
+  faces: "none" | "far" | "recognizable" | null;
+}
+
+export interface ContentItem {
+  id: string;
+  title: string;
+  story: string;
+  variants: Partial<Record<ContentChannel, ContentVariant>>;
+  mediaIds: string[];
+  mediaEvent: string | null;
+  media?: ContentMedia[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const getContentList = () => request<{ items: ContentItem[] }>("/api/content");
+export const getContent = (id: string) =>
+  request<{ item: ContentItem }>(`/api/content/${encodeURIComponent(id)}`);
+export const createContent = (input: { title: string; story: string }) =>
+  post<{ item: ContentItem }>("/api/content", input);
+export const patchContent = (
+  id: string,
+  body: {
+    title?: string;
+    story?: string;
+    variants?: Partial<Record<ContentChannel, Partial<Omit<ContentVariant, "updatedAt" | "projectId">>>>;
+  },
+) => jsonBody<{ item: ContentItem }>(`/api/content/${encodeURIComponent(id)}`, "PATCH", body);
+export const deleteContent = (id: string) =>
+  request<void>(`/api/content/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const deriveContent = (id: string, channel: ContentChannel) =>
+  post<{ item: ContentItem }>(`/api/content/${encodeURIComponent(id)}/derive`, { channel });
+export const pickContentMedia = (id: string) =>
+  post<{ item: ContentItem }>(`/api/content/${encodeURIComponent(id)}/media`);
+export const applyContentToProject = (id: string, projectId: string) =>
+  post<{ item: ContentItem; notes: string }>(`/api/content/${encodeURIComponent(id)}/apply`, { projectId });
+
+// ============ Chỉ số kênh (trang /channel-stats) ============
+
+export type ChannelPlatform = "tiktok" | "fb" | "yt";
+export type ChannelMilestone = "24h" | "7d" | "30d";
+export type ChannelLessonStatus = "testing" | "confirmed" | "dropped";
+
+export interface ChannelVideo {
+  id: string;
+  title: string;
+  durationSec: number | null;
+  pillar: 1 | 2 | 3 | null;
+  axis: string;
+  audience: string;
+  status: "idea" | "ready" | "posted";
+  postedAt: string | null;
+  postedHour: number | null;
+  /** "canh-that" | "mat" | "the-chu" | chuỗi tự do */
+  opensWith: string | null;
+  notes: string;
+}
+
+export interface ChannelMeasurement {
+  videoId: string;
+  platform: ChannelPlatform;
+  milestone: ChannelMilestone;
+  measuredAt: string;
+  views: number | null;
+  avgWatchSec: number | null;
+  fullWatch: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  saves: number | null;
+  newFollowers: number | null;
+  pctFeed: number | null;
+  pctSearch: number | null;
+  retention: { s2: number | null; s5: number | null; s10: number | null };
+  notes: string;
+}
+
+export interface ChannelLesson {
+  id: string;
+  text: string;
+  status: ChannelLessonStatus;
+}
+
+export interface ChannelStats {
+  videos: ChannelVideo[];
+  measurements: ChannelMeasurement[];
+  lessons: ChannelLesson[];
+}
+
+export const getChannelStats = () => request<ChannelStats>("/api/channel-stats");

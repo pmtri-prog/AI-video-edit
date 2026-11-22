@@ -10,6 +10,8 @@ import {
   AUTO_CUT_BACKGROUNDS,
   AUTO_CUT_LAYOUTS,
   AUTO_CUT_MODES,
+  RAW_DEFAULT_AUDIENCE,
+  RAW_DEFAULT_DIRECTION,
   autoCutDirOf,
   briefOfAutoCut,
   readAutoCut,
@@ -449,9 +451,11 @@ function parseParams(mode: AutoCutMode, raw: unknown, fallback: AutoCutParams): 
     return { minutes: round2(minutes), overlapSec: round2(overlapSec) };
   }
 
-  // mode "ai" | "prompt"
-  const count = Math.round(clamp(pick("count", 5), 1, 20));
-  const minSec = clamp(pick("minSec", 20), 1, 3600);
+  // mode "ai" | "prompt" | "raw". Footage thô: lấy nhiều ứng viên hơn, đoạn ngắn
+  // hơn (khoảnh khắc ngoài đường hiếm khi dài) - cuối cùng người dùng vẫn duyệt.
+  const isRaw = mode === "raw";
+  const count = Math.round(clamp(pick("count", isRaw ? 12 : 5), 1, isRaw ? 40 : 20));
+  const minSec = clamp(pick("minSec", isRaw ? 10 : 20), 1, 3600);
   const maxSec = clamp(pick("maxSec", 60), 1, 3600);
   if (maxSec <= minSec) {
     throw new HttpError(
@@ -473,11 +477,26 @@ function parseParams(mode: AutoCutMode, raw: unknown, fallback: AutoCutParams): 
     }
     out.request = rawRequest.trim();
   }
+  if (isRaw) {
+    const text = (key: "audience" | "direction", def: string): string => {
+      const v = o[key] !== undefined ? o[key] : fallback[key];
+      if (v !== undefined && typeof v !== "string") {
+        throw new HttpError(400, "INVALID_PARAMS", `params.${key} phải là string`);
+      }
+      // Bỏ trống = dùng mặc định: AI không chấm được "hợp TA" khi không biết TA là ai
+      return (typeof v === "string" ? v.trim().slice(0, MAX_PROFILE_CHARS) : "") || def;
+    };
+    out.audience = text("audience", RAW_DEFAULT_AUDIENCE);
+    out.direction = text("direction", RAW_DEFAULT_DIRECTION);
+  }
   return out;
 }
 
+/** Trần độ dài mô tả TA / định hướng - chặn nhồi context vào prompt */
+const MAX_PROFILE_CHARS = 2000;
+
 /**
- * mode ai/prompt BẮT BUỘC transcribe (AI phải đọc lời thoại mới chọn được đoạn)
+ * mode ai/prompt/raw BẮT BUỘC transcribe (AI phải đọc lời thoại mới chọn được đoạn)
  * -> ép về true, không báo lỗi để UI không phải biết luật này.
  * mode time mặc định true nhưng tắt được (chia đều theo phút không cần transcript).
  */

@@ -18,9 +18,13 @@ import { HttpError, ensureDir, isKebabCase, nowIso } from "./util.js";
 
 // ------------------------------------------------------------------ Kiểu dữ liệu
 
-/** Cách chọn đoạn cắt */
-export type AutoCutMode = "time" | "ai" | "prompt";
-export const AUTO_CUT_MODES: AutoCutMode[] = ["time", "ai", "prompt"];
+/**
+ * Cách chọn đoạn cắt. "raw" = footage thô quay ngoài đường, không kịch bản:
+ * AI lọc khoảnh khắc dùng được và chấm từng đoạn theo TA, định hướng kênh và
+ * giá trị nội dung (xem `AutoCutReview`).
+ */
+export type AutoCutMode = "time" | "ai" | "prompt" | "raw";
+export const AUTO_CUT_MODES: AutoCutMode[] = ["time", "ai", "prompt", "raw"];
 
 /** Tỉ lệ khung đầu ra - "keep" = giữ nguyên tỉ lệ nguồn */
 export type AutoCutAspect = "keep" | "9:16" | "16:9" | "1:1" | "4:5";
@@ -88,6 +92,42 @@ export interface AutoCutParams {
   maxSec?: number;
   /** mode "prompt": yêu cầu của người dùng về đoạn cần lấy */
   request?: string;
+  /** mode "raw": khán giả mục tiêu (TA) - nhớ giữa các phiên vì là của kênh, không của video */
+  audience?: string;
+  /** mode "raw": định hướng nội dung của kênh */
+  direction?: string;
+}
+
+/**
+ * Mặc định của mode "raw" khi người dùng chưa nhập lần nào (sau đó nhớ theo
+ * prefs). Viết theo kênh TikTok cá nhân của Trí bán TryOh! - sửa được trên form.
+ */
+export const RAW_DEFAULT_AUDIENCE =
+  "Người duyệt ngân sách sampling/activation ở nhãn hàng và agency: CMO, Brand Manager, " +
+  "Trade/Shopper Manager, Activation Manager, agency sự kiện (mỹ phẩm, dược, FMCG). Họ cần " +
+  "bằng chứng thật: người tiêu dùng phản ứng ra sao, máy vận hành thế nào, con số có nguồn.";
+export const RAW_DEFAULT_DIRECTION =
+  "TikTok cá nhân của Trí (TryOh!): góc nhìn người trong nghề sampling có dữ liệu. Ưu tiên " +
+  "khoảnh khắc thật tại điểm phát mẫu: phản ứng và câu nói của người nhận mẫu, hậu trường vận " +
+  "hành, một bài học hay một quan sát về hành vi người tiêu dùng. Không lấy chuyện phiếm, nội " +
+  "dung ngoài ngành, câu tuyệt đối hóa, hay đoạn người qua đường nói lộ thông tin cá nhân.";
+
+/** Kết luận lọc footage thô cho một đoạn */
+export type AutoCutVerdict = "keep" | "maybe" | "drop";
+
+/** Đánh giá của AI cho một đoạn ở mode "raw" - điểm 1-10 */
+export interface AutoCutReview {
+  verdict: AutoCutVerdict;
+  /** Mức hợp với khán giả mục tiêu */
+  audience: number;
+  /** Mức đúng định hướng kênh */
+  direction: number;
+  /** Giá trị nội dung tự thân: có ý trọn, có thông tin/cảm xúc/bằng chứng, xem được một mình */
+  value: number;
+  /** Vì sao giữ/bỏ - 1-2 câu */
+  why: string;
+  /** Điều phải xử lý trước khi đăng (lộ mặt người qua đường, thông tin cá nhân, âm thanh ồn…) */
+  risks: string[];
 }
 
 export interface AutoCutSegment {
@@ -100,6 +140,8 @@ export interface AutoCutSegment {
   hook?: string;
   reason?: string;
   score?: number;
+  /** Chỉ có ở mode raw - đánh giá TA / định hướng / giá trị */
+  review?: AutoCutReview;
   /** Người dùng bỏ tích đoạn này thì không cắt */
   selected: boolean;
   /** Điền sau khi cắt xong - id project con đã tạo */
@@ -135,7 +177,7 @@ export interface AutoCutMeta {
    * `styleId` lấy từ `output.styleId` để chỉ có một nguồn sự thật.
    */
   brief: Brief;
-  /** Có transcribe video nguồn không (mode ai/prompt luôn cần; mode time tùy chọn) */
+  /** Có transcribe video nguồn không (mode ai/prompt/raw luôn cần; mode time tùy chọn) */
   transcribe: boolean;
   /** Chạy phiên edit AI ngay sau khi tạo project con */
   autoEdit: boolean;

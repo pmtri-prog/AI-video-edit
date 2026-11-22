@@ -27,6 +27,7 @@ import {
   INSERT_TRANSITIONS,
   MOTION_TEMPLATES,
   listProjectAssets,
+  normStepGates,
   projectDirOf,
   projectExists,
   readMeta,
@@ -38,6 +39,17 @@ import {
   type SfxMeta,
 } from "../meta.js";
 import { queue } from "../queue.js";
+import {
+  DEFAULT_SOUND,
+  SOUND_MODES,
+  applySound,
+  musicOptions,
+  normSound,
+  soundGateOf,
+  suggestCues,
+  suggestSections,
+  type SoundGate,
+} from "../soundGate.js";
 import { HttpError, ensureDir, ffprobeDurationMs, nowIso } from "../util.js";
 
 /**
@@ -413,25 +425,31 @@ router.post("/:id/steps/illustrate/draft", async (req, res) => {
     audio.music = null;
     audio.voice = null;
   }
-  // SFX của minh họa: chép vào assets/sfx/ (Remotion chỉ stage file trong project)
-  const keep = (audio.sfx ?? []).filter((s) => s.owner !== "insert");
-  const mine: SfxMeta[] = [];
-  for (const ins of meta.inserts ?? []) {
-    if (!ins.sfx || !sfxExists(ins.sfx.file)) continue;
-    if (ins.kind !== "motion" && !ins.src) continue;
-    const dst = path.join(dir, "assets", "sfx", ins.sfx.file);
-    if (!fs.existsSync(dst)) {
-      ensureDir(path.dirname(dst));
-      fs.copyFileSync(path.join(SFX_DIR, ins.sfx.file), dst);
+  // Đã duyệt bước Âm thanh: nhạc + mọi SFX lấy từ đó (dựng lại không mất lựa chọn)
+  const sound = soundGateOf(meta);
+  if (sound) {
+    applySound(meta, sound, base.transcriptRel ? readJson(path.join(dir, base.transcriptRel)) : null);
+  } else {
+    // SFX của minh họa: chép vào assets/sfx/ (Remotion chỉ stage file trong project)
+    const keep = (audio.sfx ?? []).filter((s) => s.owner !== "insert");
+    const mine: SfxMeta[] = [];
+    for (const ins of meta.inserts ?? []) {
+      if (!ins.sfx || !sfxExists(ins.sfx.file)) continue;
+      if (ins.kind !== "motion" && !ins.src) continue;
+      const dst = path.join(dir, "assets", "sfx", ins.sfx.file);
+      if (!fs.existsSync(dst)) {
+        ensureDir(path.dirname(dst));
+        fs.copyFileSync(path.join(SFX_DIR, ins.sfx.file), dst);
+      }
+      mine.push({
+        file: `assets/sfx/${ins.sfx.file}`,
+        atFrame: Math.max(0, Math.round(ins.start * meta.fps)),
+        volume: ins.sfx.volume,
+        owner: "insert",
+      });
     }
-    mine.push({
-      file: `assets/sfx/${ins.sfx.file}`,
-      atFrame: Math.max(0, Math.round(ins.start * meta.fps)),
-      volume: ins.sfx.volume,
-      owner: "insert",
-    });
+    audio.sfx = [...keep, ...mine];
   }
-  audio.sfx = [...keep, ...mine];
   writeMeta(id, meta);
 
   const job = db.createJob({ id: `job_${nanoid()}`, projectId: id, type: "assemble-draft" });
@@ -616,5 +634,97 @@ LUẬT:
 Trả về DUY NHẤT một khối JSON, không giải thích gì thêm:
 {"items":[{"segment":3,"start":12.4,"end":16.0,"kind":"motion","display":"full","src":null,"motion":{"template":"counter","title":"Thời lượng pin","value":"11,5 giờ","label":"","items":[]},"transitionIn":"fade","transitionOut":"fade","sfx":null,"note":"Người nói nhắc thời lượng pin - con số nên hiện to."}]}`;
 }
+
+// ------------------------- Trạng thái các cổng -------------------------
+//
+//   PUT /api/projects/:id/steps/gates  { approved: number[], stale: number[] } -> StepGates
+//
+// Lưu ở meta.stepGates để danh sách project hiện được tiến độ (và mở máy khác vẫn thấy).
+
+router.put("/:id/steps/gates", (req, res) => {
+  const id = req.params.id;
+  assertProject(id);
+  const gates = normStepGates(req.body);
+  if (!gates) throw new HttpError(400, "INVALID_GATES", "Cần { approved: number[], stale: number[] }");
+  const meta = readMeta(id);
+  meta.stepGates = gates;
+  writeMeta(id, meta);
+  res.json(gates);
+});
+
+// ------------------------- Duyệt 3 · Âm thanh -------------------------
+//
+//   GET  /api/projects/:id/steps/sound          -> SoundState
+//   PUT  /api/projects/:id/steps/sound          { mode, file, volume, duckVolume, sections, cues } -> SoundState
+//   POST /api/projects/:id/steps/sound/suggest  -> SoundState (đoạn theo ý + SFX theo cảnh/thẻ chữ, giữ bài đã chọn)
+//
+// Lưu xong là ghi luôn vào timeline (audio.music | audio.musicSections, audio.sfx
+// owner "sound"); dựng draft sau đó nghe được ngay.
+
+function transcriptOf(id: string, base: StepBase): unknown {
+  return base.transcriptRel ? readJson(path.join(projectDirOf(id), base.transcriptRel)) : null;
+}
+
+async function soundStateOf(id: string, meta: ProjectMeta = readMeta(id)) {
+  const base = await stepBase(id);
+  const saved = soundGateOf(meta);
+  const gate: SoundGate = saved ?? {
+    ...DEFAULT_SOUND,
+    sections: suggestSections(meta, base.durationSec),
+    cues: suggestCues(meta),
+  };
+  return {
+    gate,
+    saved: !!saved,
+    modes: SOUND_MODES,
+    durationSec: base.durationSec,
+    music: musicOptions(id),
+    sfx: sfxOptions(),
+    brief: { musicMode: meta.brief?.musicMode ?? null, sfxMode: meta.brief?.sfxMode ?? null },
+  };
+}
+
+router.get("/:id/steps/sound", async (req, res) => {
+  assertProject(req.params.id);
+  res.json(await soundStateOf(req.params.id));
+});
+
+router.put("/:id/steps/sound", async (req, res) => {
+  const id = req.params.id;
+  assertProject(id);
+  const base = await stepBase(id);
+  const meta = readMeta(id);
+  const prev = soundGateOf(meta) ?? {
+    ...DEFAULT_SOUND,
+    sections: suggestSections(meta, base.durationSec),
+    cues: suggestCues(meta),
+  };
+  const gate = normSound(id, req.body, base.durationSec, prev);
+  if (gate.mode === "whole" && !gate.file) {
+    throw new HttpError(400, "NO_MUSIC_FILE", "Chọn bài nhạc cho cả video, hoặc chọn \"Không nhạc\"");
+  }
+  meta.soundGate = gate;
+  applySound(meta, gate, transcriptOf(id, base));
+  writeMeta(id, meta);
+  res.json(await soundStateOf(id, meta));
+});
+
+router.post("/:id/steps/sound/suggest", async (req, res) => {
+  const id = req.params.id;
+  assertProject(id);
+  const base = await stepBase(id);
+  const meta = readMeta(id);
+  const prev = soundGateOf(meta) ?? DEFAULT_SOUND;
+  // Giữ bài đã gán cho đoạn trùng mốc bắt đầu; điểm SFX gợi ý lại từ đầu
+  const sections = suggestSections(meta, base.durationSec).map((s) => ({
+    ...s,
+    file: prev.sections.find((p) => Math.abs(p.start - s.start) < 0.3)?.file ?? null,
+  }));
+  const gate: SoundGate = { ...prev, sections, cues: suggestCues(meta), updatedAt: new Date().toISOString() };
+  meta.soundGate = gate;
+  applySound(meta, gate, transcriptOf(id, base));
+  writeMeta(id, meta);
+  res.json(await soundStateOf(id, meta));
+});
 
 export default router;

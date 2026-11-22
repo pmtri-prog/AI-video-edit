@@ -371,8 +371,8 @@ dựng sẵn** (có asset, transcript đã rebase về gốc 0, brief) nên khô
 ```
 AutoCutMeta = { id, name, status: "draft"|"planning"|"planned"|"cutting"|"done"|"failed",
   source: { relPath, width, height, fps, durationSec, rotation },
-  mode: "time"|"ai"|"prompt",
-  params: { minutes?, overlapSec?, count?, minSec?, maxSec?, request? },
+  mode: "time"|"ai"|"prompt"|"raw",
+  params: { minutes?, overlapSec?, count?, minSec?, maxSec?, request?, audience?, direction? },
   output: { aspect: "keep"|"9:16"|"16:9"|"1:1"|"4:5", layout: "auto"|"crop"|"fit",
             background: "gemini"|"blur"|"style", styleId, fps },
   brief: Brief,          // cấu hình edit áp cho MỌI project con (đúng bộ field
@@ -752,6 +752,58 @@ khử trùng SVG, lưu vào `assets/brand-logos/` và cập nhật library.json.
 `404 BRAND_LOGO_NOT_FOUND` (chỉ khi đó AI mới được viết tên brand bằng chữ). `relPath` tương đối
 repo - CHÉP file vào `assets/` của project rồi mới tham chiếu (Remotion chỉ stage file trong project).
 
+## Content đa kênh (một câu chuyện → LinkedIn → Facebook → TikTok, trang /content)
+
+```
+GET    /api/content                      -> { items: ContentItem[] }
+POST   /api/content { title, story? }    -> 201 { item }
+GET    /api/content/:id                  -> { item }           (item.media[] = ảnh đã chọn, kèm viewUrl/localPath/faces)
+PATCH  /api/content/:id { title?, story?, variants?: { <kênh>: { text?, caption?, sceneSheet?, status?, postUrl? } } }
+DELETE /api/content/:id                  -> 204
+POST   /api/content/:id/derive { channel: "linkedin"|"facebook"|"tiktok" } -> { item }
+POST   /api/content/:id/media            -> { item }           (chọn lại bộ ảnh thật)
+POST   /api/content/:id/apply { projectId } -> { item, notes }
+```
+
+- Lưu ở `apps/server/data/content.json` (gitignore). `status`: draft | approved | posted; `postUrl` phải là https.
+- `derive`: AI viết bản cho kênh theo luật content TryOh (một ý, một con số chính, không bịa số, không tuyệt đối hóa).
+  Facebook và TikTok đọc bản LinkedIn để giữ cùng thông điệp. TikTok trả thêm `sceneSheet` + `caption`.
+  Lỗi: `400 STORY_REQUIRED`, `409 ALREADY_POSTED` (không viết đè bản đã đăng), `502 AI_BAD_OUTPUT`.
+- `media`: AI chọn MỘT sự kiện trong Kho TryOh khớp nội dung, lấy tối đa 5 ảnh của sự kiện đó (đồng nhất).
+  Ảnh lộ rõ mặt chưa duyệt không bao giờ được chọn. Chỉ ảnh thật, không sinh ảnh.
+- `apply`: ghi lời thoại + scene sheet + danh sách ảnh vào `brief.notes` của project (thay khối cũ của cùng content),
+  bật `brief.brollLibrary` khi có ảnh. `409 TIKTOK_MISSING` nếu chưa có bản TikTok.
+- KHÔNG có endpoint đăng bài: Trí tự đăng (hoặc Claude qua Chrome và DỪNG hỏi trước khi bấm Đăng), rồi dán link vào `postUrl`.
+
+## Channel stats (chỉ số kênh sau khi đăng - trang /channel-stats)
+
+```
+GET /api/channel-stats                  -> { videos: ChannelVideo[], measurements: Measurement[], lessons: Lesson[] }
+PUT /api/channel-stats/measurements     [Measurement, ...] (mảng không rỗng) -> { count }   upsert theo (videoId, platform, milestone)
+PUT /api/channel-stats/videos/:id       ChannelVideo (không cần id trong body) -> ChannelVideo   upsert theo :id (kebab-case)
+PUT /api/channel-stats/lessons          [Lesson, ...] -> Lesson[]   THAY toàn bộ danh sách
+
+ChannelVideo = { id, title, durationSec, pillar: 1|2|3|null, axis, audience,
+                 status: "idea"|"ready"|"posted", postedAt: "yyyy-mm-dd"|null, postedHour: 0..23|null,
+                 opensWith: "canh-that"|"mat"|"the-chu"|...|null, notes }
+Measurement  = { videoId, platform: "tiktok"|"fb"|"yt", milestone: "24h"|"7d"|"30d", measuredAt,
+                 views, avgWatchSec, fullWatch, likes, comments, shares, saves, newFollowers,
+                 pctFeed, pctSearch, retention: { s2, s5, s10 }, notes }
+Lesson       = { id, text, status: "testing"|"confirmed"|"dropped" }
+```
+
+Nguồn sự thật: `channel-stats/videos.json`, `measurements.json`, `lessons.json` (thư mục gitignore
+vì repo công khai; ghi nguyên tử qua file tạm + rename). Chưa có file thì GET trả ba mảng rỗng.
+
+- Mọi số là `number >= 0` hoặc `null` (chưa đo). `fullWatch`, `pctFeed`, `pctSearch`, `retention.*` là
+  TỶ LỆ 0..1 (0.47 = 47%). `measuredAt` là `yyyy-mm-dd` hoặc ISO datetime.
+- Sai kiểu/enum/khoảng giá trị -> `400 INVALID_CHANNEL_STATS` kèm tên field; không ghi gì nếu cả mảng
+  có một dòng sai. File JSON hỏng -> `500 CHANNEL_STATS_CORRUPT`.
+- KHÔNG lưu tên người bình luận hay dữ liệu cá nhân của người xem - chỉ số đếm. `notes` là ghi chú
+  của người đo (giờ đo, đo trước mốc...).
+- Claude cập nhật qua skill `channel-stats`. Nhập một lần từ CSV cũ: `node scripts/import-channel-stats.mjs [thư-mục]`
+  (chạy lại không trùng). Cố ý KHÔNG đặt dưới `/api/metrics` - đường dẫn đó là mức dùng CPU/GPU.
+
 ## Metrics (mức dùng CPU/GPU - thanh header web UI)
 
 ```
@@ -836,8 +888,9 @@ InsertMeta = { id, anchor: {segment,text}|null, kind: video|image|motion, start,
 
 ## Luồng 4 lần duyệt - Duyệt 1 "Nội dung"
 
-Trang `/projects/<id>/steps` gồm 4 cổng: Nội dung (tải, bóc lời, cắt thô + phần dưới) → Cảnh sự kiện (minh họa ở
-trên, dựng draft) → Bản nháp (QC) → Đóng gói (thumbnail, gói xuất bản, `assemble-final`).
+Trang `/projects/<id>/steps` gồm 4 cổng: Nội dung & bìa (tải, bóc lời, cắt thô, phần dưới, thumbnail + gói xuất
+bản) → Cảnh sự kiện (minh họa ở trên, dựng draft xem thử) → Âm thanh (mục dưới; duyệt = `POST …/illustrate/draft`)
+→ Bản nháp (QC; "Duyệt & xuất bản" = job `assemble-final`).
 
 ```
 GET  /api/projects/:id/steps/content           -> ContentState
@@ -861,6 +914,44 @@ ContentDecision = { splitParts: boolean|null, title, wow: { src, mediaStart }|nu
 - `channel` khác null khi `brief.skill = "activos-tiktok"`: AI đề xuất minh họa phải mở bằng cảnh sự kiện thật, và
   `POST /:id/publish` ép hashtag TikTok = `#tryoh #learnontiktok #sukien #sampling` + tối đa 2 tag.
 - Lỗi: 409 `NO_TRANSCRIPT`, 502 `CONTENT_PARSE_FAILED`, 400 `INVALID_DECISION`.
+
+## Luồng 4 lần duyệt - trạng thái cổng
+
+```
+PUT /api/projects/:id/steps/gates  { approved: number[], stale: number[] } -> StepGates
+```
+
+- Chỉ số cổng 0–3 (Nội dung & bìa, Cảnh sự kiện, Âm thanh, Bản nháp), lưu ở `meta.stepGates`.
+- `GET /api/projects` (summary) trả thêm `steps: StepGates | null` - khác null khi project có `stepGates` hoặc
+  `flow = "steps"`. Danh sách project dùng nó để hiện đang ở bước nào và mở thẳng trang các bước.
+- 400 `INVALID_GATES` khi body không phải object.
+
+## Luồng 4 lần duyệt - Duyệt 3 "Âm thanh"
+
+```
+GET  /api/projects/:id/steps/sound          -> SoundState
+PUT  /api/projects/:id/steps/sound          Partial<SoundGate> -> SoundState
+POST /api/projects/:id/steps/sound/suggest  -> SoundState   (đoạn + điểm SFX gợi ý lại, giữ bài đã gán)
+
+SoundState = { gate: SoundGate, saved: boolean, modes, durationSec,
+               music: [{ value, label, tags, description, url }], sfx: [{ file, tags, description }],
+               brief: { musicMode, sfxMode } }
+SoundGate  = { mode: "none"|"whole"|"sections", file: string|null, volume, duckVolume,
+               sections: [{ start, end, label, file: string|null }],
+               cues: [{ id, at, label, file, volume, enabled, source: "insert"|"card"|"user" }], updatedAt }
+```
+
+- Lưu ở `meta.soundGate`. `saved: false` = chưa lưu lần nào, `gate` là gợi ý của máy.
+- `file` của nhạc: đường dẫn trong project, hoặc `"library:<file>"` (bài trong `assets/music/`) - server chép bài
+  vào `assets/music/` của project rồi lưu đường dẫn đó (Remotion chỉ stage file trong project).
+- Đoạn gợi ý chia theo câu móc + từng ý của Duyệt 1 (đoạn < 2s bị gộp). Điểm SFX gợi ý: lúc hiện minh họa
+  (swoosh, hoặc SFX đã gán cho minh họa) và lúc hiện thẻ chữ `meta.tryoh.cards` (pop; thẻ `big` = ding).
+  `brief.sfxMode = "none"` → các điểm gợi ý mặc định `enabled: false`.
+- PUT/suggest ghi luôn vào timeline: `audio.music` (whole) hoặc `audio.musicSections` (sections, mỗi đoạn
+  `{ file, from, to, crossfade: 1, volume, duckVolume, speech }`, giây) và `audio.sfx` owner `"sound"` (thay mọi SFX
+  owner `"insert"`). `speech` tính từ word timestamps của transcript, khoảng nghỉ < 0.6s gộp lại.
+- `POST …/illustrate/draft` gọi lại bước này nếu `meta.soundGate` có, nên dựng lại draft không mất âm thanh.
+- Lỗi: 400 `NO_MUSIC_FILE` (mode whole mà chưa chọn bài).
 
 ## Auto-trim: cắt khoảng lặng + mỡ thừa của MỘT video project
 

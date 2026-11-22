@@ -35,7 +35,7 @@ const demoManifest: Manifest = {
     { id: "s01-logo", src: "compositions/s01-logo.html", durationInFrames: 90, srcImage: null },
     { id: "s02-tagline", src: "compositions/s02-tagline.html", durationInFrames: 120, srcImage: null },
   ],
-  audio: { sfx: [], music: null },
+  audio: { sfx: [], music: null, musicSections: [] },
   captions: [],
   overlays: [],
   inserts: [],

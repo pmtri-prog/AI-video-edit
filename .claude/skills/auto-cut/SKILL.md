@@ -173,6 +173,9 @@ dead weight, and the verification verdict. Take the numbers from `auto-trim-repo
   below, and it applies to any new code that cuts or concatenates audio.
 - Source whose audio `start_time` differs from the video's (phone .mov: audio 0.534s, video 0): the transcript is in AUDIO time (first audio sample = 0) and `atrim`+`asetpts` in the trim job drops that offset, so the `.cut.mp4` plays sound ~0.5s EARLY against the picture. Check with `ffprobe -show_entries stream=codec_type,start_time`. Fix: re-encode with `ffmpeg -ss <t> -t <len> -i src` (INPUT seek, no atrim) and shift transcript words by `audio_start - <t>`. Do not use `loudnorm` or `aresample=first_pts` together with output-side `-ss`: both moved speech by ~0.8s in testing.
 - The server runs `apps/server/dist/` (`npm run start`), not `tsx watch`: a fix in `src/` does nothing until `npm run build -w apps/server` and a restart. Symptom seen: cut file with audio only because the running dist lacked the `probeStreams` fix for rotated footage.
+- **Whisper can invent a duplicate line.** On a 177s talking head it emitted "Và vấn đề thứ 3 là các bạn có thể ghi rất là rõ ràng cho người dùng" (15 words squeezed into 1.16s) right before the real "Và vấn đề thứ 3 nữa là…". It looks like a retake, but `silencedetect` showed continuous speech with no pause there. Before cutting a "repeated take", check words per second (>6 w/s is not speech) and that a pause actually separates the two takes. When it is a hallucination, delete that segment from `transcript.raw.json` (not the `.cut` copy, so a re-cut keeps the fix) and spread the next segment's squeezed first words over the gap.
+- A cut that drops part of a sentence used to leave the old `text` in `transcript.cut.json` (the hook scorer quoted the removed false start "lãm về tiếp tục…"). `remapWordTimestamps` now rebuilds `text` from the kept words; if a cut transcript still shows removed words, re-run apply.
+- PMR*.MOV from ProMovie Recorder (iPhone) can carry the audio `start_time` offset described above (0.5s on one take, 0 on another from the same day): probe EVERY file, not one per shoot. The fix used: `ffmpeg -ss <audio_start> -i src -c:v libx264 -crf 16 … <stem>-sync.mp4`, then delete the project's copy of the .mov. The raw transcript is already in audio time, so it lines up with the new file without re-transcribing.
 - Midpoint guard also rejects candidates that ARE a single word (a lone "Ừ" / "cái cái"), so they never get cut through `cutCandidates`; trim such fillers at the head/tail of the clip at a word boundary instead.
 
 ## Audio: fade 30ms at every cut edge (hard rule)
@@ -218,3 +221,5 @@ One note on measuring this yourself: do not compare two AAC encodes. Re-encoding
 everywhere, which buried the 40 real joins among 294 spurious difference regions and put a 54ms
 offset between the two files. Render both variants straight to `pcm_s16le` instead - then the two are
 sample-aligned and the joins sit exactly at the cumulative segment lengths.
+
+- **Midpoint guard rejects `cutCandidates` that swallow words**: for content cuts (dropping whole stories/sentences) use `manualCuts`, not `cutCandidates`.

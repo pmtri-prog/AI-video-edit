@@ -47,6 +47,8 @@ const Cue: React.FC<{ cue: CaptionCue; levels: Tryoh["levels"] }> = ({ cue, leve
               style={{
                 display: "inline-block",
                 margin: "0 0.2em",
+                // Key được nhấn: hồng nhạt của bảng TryOh! trên nền mực (đọc rõ, không dùng đỏ cho chữ nhỏ)
+                color: w.hi ? TRYOH.hong : undefined,
                 boxShadow: spoken ? `inset 0 -6px 0 ${color}` : "none",
               }}
             >

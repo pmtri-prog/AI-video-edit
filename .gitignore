@@ -16,6 +16,10 @@ engines/remotion/public/staging/*
 !engines/remotion/public/staging/.gitkeep
 outputs/
 imports/
+
+# Chỉ số kênh (lượt xem, giữ chân, bài học): dữ liệu riêng của người dùng, mà
+# repo này công khai - ở lại máy. Ghi bởi apps/server/src/channelStats.ts.
+/channel-stats/
 *.log
 # Artifact build tăng dần của TypeScript - mỗi lần typecheck lại đổi, không commit
 *.tsbuildinfo
@@ -95,3 +99,9 @@ start/update-target.txt
 # Trạng thái cục bộ của script khởi động: dấu vân tay mã nguồn của bản build
 # gần nhất (build.json) và của lần chạy hiện tại (run.json). Riêng từng máy.
 /.aiev/
+
+# File rác hệ điều hành, DB tạm và worktree cục bộ của agent
+.DS_Store
+app.sqlite
+.claude/worktrees/
+plans/*/stitch/

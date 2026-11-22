@@ -11,6 +11,16 @@ import { BODY, HEADING, MONO, TRYOH } from "../tryohTokens";
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 const BAND_BOTTOM = 650;
 
+/** Tách thành hai dòng tại khoảng trắng gần giữa câu nhất (theo số ký tự). */
+const splitBalanced = (text: string): string[] => {
+  const mid = text.length / 2;
+  let best = -1;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === " " && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
+  }
+  return best < 0 ? [text] : [text.slice(0, best), text.slice(best + 1)];
+};
+
 export const TryohKey: React.FC<{ tierKey: Tryoh["keys"][number] }> = ({ tierKey }) => {
   const frame = useCurrentFrame();
   const last = tierKey.durationInFrames - 1;
@@ -20,6 +30,11 @@ export const TryohKey: React.FC<{ tierKey: Tryoh["keys"][number] }> = ({ tierKey
   const y = (1 - enter) * 24 - (1 - exit) * 12;
 
   if (tierKey.tier === "main") {
+    // Key dài (> 24 ký tự) không vừa một dòng 876px: hạ cỡ chữ và cho xuống dòng, kéo lên sát mép an toàn 150px.
+    const long = tierKey.text.length > 24;
+    // Key dài: tự ngắt ở khoảng trắng gần giữa nhất để hai dòng dài gần bằng nhau
+    // (không mồ côi "thu.") và hộp nền ôm vừa chữ thay vì kéo hết bề ngang.
+    const lines = long ? splitBalanced(tierKey.text) : [tierKey.text];
     return (
       <div style={{ position: "absolute", top: 200, left: 64, right: 140, display: "flex", opacity, transform: `translateY(${y}px)` }}>
         <div
@@ -30,13 +45,18 @@ export const TryohKey: React.FC<{ tierKey: Tryoh["keys"][number] }> = ({ tierKey
             padding: "16px 36px 20px",
             fontFamily: HEADING,
             fontWeight: 700,
-            fontSize: 64,
+            fontSize: long ? 54 : 64,
             lineHeight: 1.1,
             letterSpacing: "-0.02em",
             whiteSpace: "nowrap",
           }}
         >
-          {tierKey.text}
+          {lines.map((line, i) => (
+            <React.Fragment key={i}>
+              {i > 0 ? <br /> : null}
+              {line}
+            </React.Fragment>
+          ))}
           <span style={{ color: TRYOH.do }}>.</span>
         </div>
       </div>
